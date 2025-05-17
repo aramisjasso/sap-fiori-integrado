@@ -68,10 +68,11 @@
   </layout:SimpleForm>
 
   <m:buttons>
-    <m:Button
-      text="Guardar"
-      type="Emphasized"
-      press="{= ${roleDialogModel>/IS_EDIT} ? '.onSaveRoleEdit' : '.onSaveRole'}" />
+<m:Button
+  text="Guardar"
+  type="Emphasized"
+  press=".onSaveRoleEdit" />
+
     <m:Button text="Cancelar" press=".onDialogClose" />
   </m:buttons>
 </m:Dialog>

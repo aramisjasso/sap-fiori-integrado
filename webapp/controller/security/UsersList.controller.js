@@ -25,7 +25,7 @@ sap.ui.define([
 
         _loadUsersData: async function(){
             try {
-                const response = await fetch("http://localhost:4004/api/sec/usersCRUD?procedure=getall");
+                const response = await fetch("http://localhost:4004/api/security/crudUsers?action=get");
                 const data = await response.json();
                 //console.log("ESTO ES LA RESPUESTA:",data);
                 // Guardamos todo el array de usuarios
