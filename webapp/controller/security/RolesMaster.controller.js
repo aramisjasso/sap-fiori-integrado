@@ -125,7 +125,7 @@ sap.ui.define(
         },
 
         onOpenDialog: async function () {
-          await this.loadCatalogsOnce(); // Asegurar que los catálogos estén cargados
+          await this.loadCatalogsOnce(); 
           const oDialog = await this._pDialog;
           this.getView().getModel("newRoleModel").setData({
             ROLEID: "",
@@ -140,7 +140,7 @@ sap.ui.define(
         },
 
         onOpenEditDialog: async function (oSelectedRoleData) {
-          await this.loadCatalogsOnce(); // Asegurar que los catálogos estén cargados
+          await this.loadCatalogsOnce(); 
           const oDialog = await this._pEditDialog;
           const oEditModel = this.getView().getModel("roleDialogModel");
           oEditModel.setData({
@@ -168,7 +168,7 @@ sap.ui.define(
         },
 
         onAddPrivilege: function () {
-          const oModel = this.getView().getModel("roleDialogModel"); // Usar el modelo correcto para editar
+          const oModel = this.getView().getModel("roleDialogModel"); 
           const oData = oModel.getData();
           if (
             !oData.NEW_PROCESSID ||

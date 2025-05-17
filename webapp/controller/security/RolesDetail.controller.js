@@ -211,7 +211,6 @@ sap.ui.define(
           });
           oView.setModel(oModel, "roleDialogModel");
 
-          // **Importante:** Asigna los modelos de catálogo a la vista *aquí*, después de cargarlos.
           oView.setModel(
             this.getView().getModel("processCatalogModel"),
             "processCatalogModel"
@@ -339,9 +338,8 @@ sap.ui.define(
                 this.getView().getModel("selectedRole");
               if (oSelectedRoleModel) {
                 oSelectedRoleModel.setData(Object.assign({}, oUpdatedRoleData));
-                this.byId("processesTable").getBinding("rows").refresh(); // Refresca el binding de la tabla
+                this.byId("processesTable").getBinding("rows").refresh(); 
               }
-              // this._loadRoleDetails(oData.ROLEID); // Ya no es estrictamente necesario si actualizamos selectedRole directamente
             }
             const oDialog = this.byId("dialogEditRole");
             if (oDialog) {
