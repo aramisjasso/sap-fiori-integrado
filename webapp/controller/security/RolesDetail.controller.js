@@ -327,20 +327,17 @@ sap.ui.define(
 
             const oRolesModel = this.getOwnerComponent().getModel("roles");
             const aRoles = oRolesModel.getProperty("/value");
-            const index = aRoles.findIndex(
+            const updatedRole = aRoles.find(
               (role) => role.ROLEID === oData.ROLEID
-            );
-            if (index !== -1) {
-              const oUpdatedRoleData = aRoles[index];
-              oRolesModel.setProperty("/value/" + index, oUpdatedRoleData);
+            ); // Busca el rol *actualizado*
 
+            if (updatedRole) {
               const oSelectedRoleModel =
                 this.getView().getModel("selectedRole");
-              if (oSelectedRoleModel) {
-                oSelectedRoleModel.setData(Object.assign({}, oUpdatedRoleData));
-                this.byId("processesTable").getBinding("rows").refresh(); 
-              }
+              oSelectedRoleModel.setData(Object.assign({}, updatedRole)); // Establece *todo* el rol actualizado
+              this.byId("processesTable").getBinding("rows").refresh(); // Refresca la tabla
             }
+
             const oDialog = this.byId("dialogEditRole");
             if (oDialog) {
               oDialog.close();

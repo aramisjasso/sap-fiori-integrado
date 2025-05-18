@@ -39,7 +39,7 @@ sap.ui.define(
 
         _loadFragments: function () {
           this._pDialog = Fragment.load({
-            name: "com/invertions/sapfiorimodinv/view/security/fragments/AddRoleDialog",
+            name: "com.invertions.sapfiorimodinv.view.security.fragments.AddRoleDialog",
             controller: this,
           }).then((oDialog) => {
             this.getView().addDependent(oDialog);
@@ -47,7 +47,7 @@ sap.ui.define(
           });
 
           this._pEditDialog = Fragment.load({
-            name: "com/invertions/sapfiorimodinv/view/security/fragments/EditRoleDialog",
+            name: "com.invertions.sapfiorimodinv.view.security.fragments.EditRoleDialog",
             controller: this,
           }).then((oDialog) => {
             this.getView().addDependent(oDialog);
@@ -125,7 +125,7 @@ sap.ui.define(
         },
 
         onOpenDialog: async function () {
-          await this.loadCatalogsOnce(); 
+          await this.loadCatalogsOnce();
           const oDialog = await this._pDialog;
           this.getView().getModel("newRoleModel").setData({
             ROLEID: "",
@@ -137,11 +137,12 @@ sap.ui.define(
           });
           oDialog.setTitle("Crear Rol");
           oDialog.open();
+          this._currentDialog = "create"; // Establecer el diálogo actual como "create"
         },
-
         onOpenEditDialog: async function (oSelectedRoleData) {
-          await this.loadCatalogsOnce(); 
+          await this.loadCatalogsOnce();
           const oDialog = await this._pEditDialog;
+
           const oEditModel = this.getView().getModel("roleDialogModel");
           oEditModel.setData({
             ROLEID: oSelectedRoleData.ROLEID || "",
@@ -149,15 +150,17 @@ sap.ui.define(
             DESCRIPTION: oSelectedRoleData.DESCRIPTION || "",
             NEW_PROCESSID: "",
             NEW_PRIVILEGES: [],
+            // Copiar los privilegios existentes al modelo para que se muestren en la tabla
             PRIVILEGES: oSelectedRoleData.PRIVILEGES || [],
           });
+
           oDialog.setTitle("Editar Rol");
           oDialog.open();
+          this._currentDialog = "edit"; // Establecer el diálogo actual como "edit"
           Log.info(
             `Diálogo de edición abierto para el rol: ${oSelectedRoleData.ROLEID}`
           );
         },
-
         onDialogClose: function () {
           if (this._pDialog) {
             this._pDialog.then((oDialog) => oDialog.close());
@@ -168,8 +171,17 @@ sap.ui.define(
         },
 
         onAddPrivilege: function () {
-          const oModel = this.getView().getModel("roleDialogModel"); 
-          const oData = oModel.getData();
+          let oViewModel;
+          if (this._currentDialog === "create") {
+            oViewModel = this.getView().getModel("newRoleModel");
+          } else if (this._currentDialog === "edit") {
+            oViewModel = this.getView().getModel("roleDialogModel");
+          } else {
+            Log.error("Diálogo actual desconocido en onAddPrivilege.");
+            return;
+          }
+
+          const oData = oViewModel.getData();
           if (
             !oData.NEW_PROCESSID ||
             !Array.isArray(oData.NEW_PRIVILEGES) ||
@@ -178,57 +190,73 @@ sap.ui.define(
             MessageToast.show("Selecciona proceso y al menos un privilegio.");
             return;
           }
+          if (!Array.isArray(oData.PRIVILEGES)) {
+            oData.PRIVILEGES = []; // Inicializar el array de privilegios si no existe
+          }
           oData.PRIVILEGES.push({
             PROCESSID: oData.NEW_PROCESSID,
             PRIVILEGEID: oData.NEW_PRIVILEGES,
           });
           oData.NEW_PROCESSID = "";
           oData.NEW_PRIVILEGES = [];
-          oModel.setData(oData);
+          oViewModel.setData(oData);
         },
-
-        onSaveRole: function () {
-          // Esta función ahora solo cierra el diálogo.
-          this.onDialogClose();
-        },
-
-        onConfirmRoleSave: async function () {
-          const oSelectedRole = this.getView()
+        onSaveRole: async function () {
+          const oView = this.getView();
+          const oNewRoleData = oView.getModel("newRoleModel").getData(); // Datos para la creación
+          const oEditData = oView.getModel("roleDialogModel").getData(); // Datos para la edición
+          const oSelectedRoleData = this.getView()
             .getModel("selectedRole")
-            .getData();
-          if (oSelectedRole && oSelectedRole.ROLEID) {
-            // Lógica para actualizar un rol existente
-            const oEditData = this.getView()
-              .getModel("roleDialogModel")
-              .getData();
-            const oUpdatePayload = {
+            .getData(); // Datos del rol seleccionado
+
+          if (!oNewRoleData.ROLEID || !oNewRoleData.ROLENAME) {
+            MessageToast.show("ID y Nombre del Rol son obligatorios.");
+            return;
+          }
+
+          let sAction = "create";
+          let oPayload = { roles: oNewRoleData };
+
+          if (oSelectedRoleData && oSelectedRoleData.ROLEID) {
+            sAction = "update";
+            oPayload = {
               roles: {
-                ROLEID: oSelectedRole.ROLEID,
+                ROLEID: oSelectedRoleData.ROLEID,
                 ROLENAME: oEditData.ROLENAME,
                 DESCRIPTION: oEditData.DESCRIPTION,
-                PRIVILEGES: oEditData.PRIVILEGES,
+                PRIVILEGES: oEditData.PRIVILEGES || [], // Usar los privilegios del diálogo de edición
               },
             };
-            await this._saveRoleData("update", oUpdatePayload);
           } else {
-            // Lógica para crear un nuevo rol
-            const oCreateData = this.getView()
-              .getModel("newRoleModel")
-              .getData();
-            await this._saveRoleData("create", { roles: oCreateData });
+            // Para la creación, tomamos los privilegios del modelo de nuevo rol
+            oPayload.roles.PRIVILEGES = oNewRoleData.PRIVILEGES || [];
+            // Limpiar propiedades temporales del modelo de nuevo rol
+            delete oPayload.roles.NEW_PROCESSID;
+            delete oPayload.roles.NEW_PRIVILEGES;
           }
-        },
 
-        _saveRoleData: async function (sAction, oPayload) {
           try {
-            const response = await fetch(
-              `http://localhost:4004/api/security/crudRoles?action=${sAction}`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(oPayload),
-              }
-            );
+            let sUrl =
+              "http://localhost:4004/api/security/crudRoles?action=" + sAction;
+
+            if (
+              sAction === "update" &&
+              oPayload.roles &&
+              oPayload.roles.ROLEID
+            ) {
+              sUrl += "&roleid=" + encodeURIComponent(oPayload.roles.ROLEID);
+              console.log("URL de actualización:", sUrl);
+              console.log("Payload de actualización:", oPayload);
+            } else {
+              console.log("URL de creación:", sUrl);
+              console.log("Payload de creación:", oPayload);
+            }
+
+            const response = await fetch(sUrl, {
+              method: "POST", // Revisa la documentación de tu API para el método correcto (PUT/PATCH?)
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(oPayload),
+            });
             if (!response.ok) {
               const errorText = await response.text();
               Log.error(
@@ -238,6 +266,7 @@ sap.ui.define(
               return;
             }
             MessageToast.show(`Rol guardado correctamente (${sAction}).`);
+            this.onDialogClose();
             this.loadRolesData(); // Recargar los roles después de guardar
           } catch (error) {
             Log.error(`Error al guardar el rol (${sAction}):`, error);
@@ -246,7 +275,6 @@ sap.ui.define(
             );
           }
         },
-
         loadRolesData: async function () {
           try {
             const response = await fetch(
@@ -319,12 +347,10 @@ sap.ui.define(
         onRoleSelected: function () {
           const oTable = this.byId("rolesTable");
           const iIndex = oTable.getSelectedIndex();
-
           if (iIndex === -1) {
             MessageToast.show("Selecciona un rol válido.");
             return;
           }
-
           const oContext = oTable.getContextByIndex(iIndex);
           if (!oContext) {
             MessageBox.error(
@@ -332,15 +358,12 @@ sap.ui.define(
             );
             return;
           }
-
           const oSelectedRole = oContext.getObject();
-          this.getOwnerComponent()
-            .getRouter()
-            .navTo("RouteRolesDetail", {
-              roleId: encodeURIComponent(oSelectedRole.ROLEID),
-            });
+          this.getView().getModel("selectedRole").setData(oSelectedRole); // Almacenar el rol seleccionado
+          console.log("Rol seleccionado:", oSelectedRole);
+          this.onOpenEditDialog(oSelectedRole);
+          Log.info(`Rol seleccionado para editar: ${oSelectedRole.ROLEID}`);
         },
-
 
         onMultiSearch: function () {
           const sQuery = this.byId("searchRoleName").getValue().toLowerCase();
@@ -350,7 +373,7 @@ sap.ui.define(
             : [];
           oBinding.filter(aFilters);
         },
-
+     
       }
     );
   }
