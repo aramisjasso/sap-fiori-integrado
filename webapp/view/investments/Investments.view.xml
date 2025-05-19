@@ -13,7 +13,7 @@
 
         <ToolbarSpacer/>
         <Text text="{= 'Balance: $' + ${strategyAnalysisModel>/balance}}"
-            class="customSuccessText sapUiSmallMarginBegin"/>
+            class="balance sapUiSmallMarginBegin"/>
  
         </headerContent>
         <content>
@@ -43,17 +43,20 @@
                                                 <Column><Text text="Shares"/></Column> <!-- Acciones -->
                                             </columns>
                                             <items>
-                                                <ColumnListItem>
-                                                    <Text text="{strategyResultModel>DATE}"/>
-                                                    <Text text="{strategyResultModel>OPEN}"/>
-                                                    <Text text="{strategyResultModel>HIGH}"/>
-                                                    <Text text="{strategyResultModel>LOW}"/>
-                                                    <Text text="{strategyResultModel>CLOSE}"/>
-                                                    <Text text="{strategyResultModel>VOLUME}"/>
-                                                    <Text text="{strategyResultModel>INDICATORS}"/>
-                                                    <Text text="{strategyResultModel>SIGNALS}"/>
-                                                    <Text text="{strategyResultModel>RULES}"/>
-                                                    <Text text="{strategyResultModel>SHARES}"/>
+                                                <ColumnListItem type="Active"
+                                                    highlight="{= ${strategyResultModel>SIGNALS} === 'BUY' ? 'Success' : (${strategyResultModel>SIGNALS} === 'SELL' ? 'Error' : 'None') }">
+                                                    <cells>
+                                                        <Text text="{strategyResultModel>DATE}" class="{= ${strategyResultModel>SIGNALS} === 'BUY' ? 'rowBuy' : (${strategyResultModel>SIGNALS} === 'SELL' ? 'rowSell' : '') }"/>
+                                                        <Text text="{strategyResultModel>OPEN}"/>
+                                                        <Text text="{strategyResultModel>HIGH}"/>
+                                                        <Text text="{strategyResultModel>LOW}"/>
+                                                        <Text text="{strategyResultModel>CLOSE}"/>
+                                                        <Text text="{strategyResultModel>VOLUME}"/>
+                                                        <Text text="{strategyResultModel>INDICATORS}"/>
+                                                        <Text text="{strategyResultModel>SIGNALS}"/>
+                                                        <Text text="{strategyResultModel>RULES}"/>
+                                                        <Text text="{strategyResultModel>SHARES}"/>
+                                                    </cells>
                                                 </ColumnListItem>
                                             </items>
                                         </Table>
@@ -105,22 +108,16 @@
                                                                 name="ShortMA" value="{strategyResultModel>SHORT_MA}"/>
                                                             <viz.data:MeasureDefinition
                                                                 name="LongMA" value="{strategyResultModel>LONG_MA}"/>
+                                                            <viz.data:MeasureDefinition name="Señal BUY" 
+                                                                value="{strategyResultModel>BUY_SIGNAL}"/>
+                                                            <viz.data:MeasureDefinition name="Señal SELL" 
+                                                                value="{strategyResultModel>SELL_SIGNAL}"/>
                                                         </viz.data:measures>
                                                     </viz.data:FlattenedDataset>
                                                 </viz:dataset>
                                                 <viz:feeds>
-                                                    <viz.feeds:FeedItem
-                                                        uid="timeAxis" type="Dimension"
-                                                        values="Fecha"/>
-                                                    <viz.feeds:FeedItem
-                                                        uid="valueAxis" type="Measure"
-                                                        values="PrecioCierre"/>
-                                                    <viz.feeds:FeedItem
-                                                        uid="valueAxis" type="Measure"
-                                                        values="ShortMA"/> 
-                                                    <viz.feeds:FeedItem
-                                                        uid="valueAxis" type="Measure"
-                                                        values="LongMA"/> 
+                                                    <viz.feeds:FeedItem uid="timeAxis" type="Dimension" values="Fecha"/>
+                                                    <viz.feeds:FeedItem uid="valueAxis" type="Measure" values="PrecioCierre,ShortMA,LongMA,Señal BUY,Señal SELL"/>
                                                 </viz:feeds>
                                             </viz:VizFrame>
                                             

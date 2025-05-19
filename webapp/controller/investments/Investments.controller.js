@@ -63,6 +63,7 @@ sap.ui.define([
         strategies: []
       }), "strategyAnalysisModel");
 
+      
       // Modelo de resultados
       this.getView().setModel(new JSONModel({
         hasResults: false,
@@ -100,26 +101,52 @@ sap.ui.define([
 
     // Configurar gráfico
     _onViewAfterRendering: function() {
-      const oVizFrame = this.byId("idVizFrame");
-      if (!oVizFrame) return;
+    const oVizFrame = this.byId("idVizFrame");
+    if (!oVizFrame) return;
 
-      oVizFrame.setVizProperties({
-        plotArea: { dataLabel: { visible: false } },
-        valueAxis: { title: { text: "Precio de Cierre (USD)" } },
+    oVizFrame.setVizProperties({
+        plotArea: { 
+            dataShape: { 
+                primaryAxis: ["line", "line", "line", "point", "point"]
+            },
+            colorPalette: ["#0074D9", "#FFDC00", "#FFA500", "#2ecc40", "#ff4136"],
+            dataLabel: { visible: false },
+            marker: {
+                visible: true,
+                shape: ["circle", "circle", "circle", "triangleUp", "triangleDown"]
+            },
+            window: {
+                start: "firstDataPoint",
+                end: "lastDataPoint"
+            }
+        },
+        valueAxis: { 
+            title: { text: "Precio de Cierre (USD)" }, 
+            visible: true 
+        },
         timeAxis: {
-          title: { text: "Fecha" },
-          levels: ["day", "month", "year"],
-          label: { formatString: "dd/MM/yy" }
+            title: { text: "Fecha" },
+            levels: ["day", "month", "year"],
+            label: { formatString: "dd/MM/yy" }
         },
         title: { text: "Histórico de Precios de Acciones" },
         legend: { visible: true },
-        toolTip: { visible: true, formatString: "#,##0.00" },
+        toolTip: { 
+            visible: true,
+            formatString: [
+                ["PrecioCierre", ":.2f USD"],
+                ["ShortMA", ":.2f"],
+                ["LongMA", ":.2f"],
+                ["Señal BUY", ":.2f USD"],
+                ["Señal SELL", ":.2f USD"]
+            ]
+        },
         interaction: {
-          zoom: { enablement: "enabled" },
-          selectability: { mode: "single" }
+            zoom: { enablement: "enabled" },
+            selectability: { mode: "single" }
         }
-      });
-    },
+    });
+  },
 
     // Métodos de fecha
     _setDefaultDates: function() {
@@ -197,6 +224,8 @@ sap.ui.define([
 
     _handleAnalysisResponse: function(data, oStrategyModel, oResultModel) {
         console.log("Datos recibidos:", data);
+        console.log("Datos para la gráfica:", data.value.chart_data);
+         console.log("Señales:", data.value.signals);
         
         // Actualizar modelo de resultados
         oResultModel.setData({
@@ -207,7 +236,11 @@ sap.ui.define([
                 data.value.transactions || []
             ),
             signals: data.value.signals || [],
-            result: data.value.result || 0
+            result: data.value.result || 0,
+            simulationName: "Moving Average Crossover",
+            symbol: oStrategyModel.getProperty("/symbol"),
+            startDate: oStrategyModel.getProperty("/startDate"),
+            endDate: oStrategyModel.getProperty("/endDate")
         });
 
         // Actualizar balance
@@ -275,6 +308,37 @@ sap.ui.define([
       } else {
         MessageToast.show("Por favor, seleccione un símbolo.");
       }
+    },
+
+    formatDate: function(oDate) {
+        if (!oDate) return "";
+        return DateFormat.getDateInstance({
+            pattern: "dd/MM/yyyy"
+        }).format(new Date(oDate));
+    },
+
+    formatSignalCount: function(aSignals, sType) {
+        if (!Array.isArray(aSignals)) return "0";
+        return aSignals.filter(s => s.type === sType).length.toString();
+    },
+
+    formatStopLossCount: function(aSignals) {
+        if (!Array.isArray(aSignals)) return "0";
+        return aSignals.filter(s => s.isStopLoss === true).length.toString();
+    },
+
+    formatSignalState: function(sType) {
+        return sType === 'buy' ? 'Success' : 'Error';
+    },
+
+    formatCurrency: function(value) {
+        if (!value) return "$0.00";
+        return `$${parseFloat(value).toFixed(2)}`;
+    },
+
+    formatSignalPrice: function(value) {
+        if (!value) return "";
+        return `$${parseFloat(value).toFixed(2)}`;
     },
 
     onDataPointSelect: function(oEvent) {
