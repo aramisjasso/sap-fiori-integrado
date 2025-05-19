@@ -29,7 +29,7 @@
                                     <FlexItemData growFactor="1"/>
                                 </layoutData>
                                     <ScrollContainer height="60%" vertical="true" horizontal="false" width="100%">
-                                        <Table items="{strategyResultModel>/chart_data}" width="100%" growing="false">
+                                        <Table items="{strategyResultModel>/chart_data}" width="100%" growing="true" growingThreshold="100">
                                             <columns>
                                                 <Column><Text text="Date"/></Column>
                                                 <Column><Text text="Open"/></Column>
@@ -95,7 +95,7 @@
                                                         <viz.data:dimensions>
                                                             <viz.data:DimensionDefinition
                                                                 name="Fecha"
-                                                                value="{strategyResultModel>DATE}"
+                                                                value="{strategyResultModel>DATE_GRAPH}"
                                                                 dataType="date"/>
                                                         </viz.data:dimensions>
                                                         <viz.data:measures>
