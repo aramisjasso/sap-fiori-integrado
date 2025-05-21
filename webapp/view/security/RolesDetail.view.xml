@@ -5,26 +5,17 @@
   xmlns:core="sap.ui.core"
   xmlns:layout="sap.ui.layout.form"
   xmlns:tl="sap.ui.table"
-  xmlns:rowmodes="sap.ui.table.rowmodes"
-  xmlns:cc="com.invertions.sapfiorimodinv.controller">
+  xmlns:rowmodes="sap.ui.table.rowmodes">
 
-  <m:Page
-    id="rolesDetailPage"
-    title="Detalles de rol: {selectedRole>/ROLENAME}"
-    showNavButton="true"
-    navButtonPress=".onNavBack">
-
+  <m:VBox class="sapUiContentPadding">
     <!-- 🔹 Acciones del Rol -->
-    <m:headerContent>
       <m:Toolbar>
+        <m:Title text="Detalles de rol: {selectedRole>/ROLENAME}" level="H2" />
         <m:ToolbarSpacer />
         <m:Button text="Editar" type="Emphasized" icon="sap-icon://edit" press=".onUpdateRole" />
         <m:Button text="Desactivar" icon="sap-icon://delete" press=".onDesactivateRole" type="Attention" />
         <m:Button text="Eliminar" icon="sap-icon://delete" type="Reject" press=".onDeleteRole" />
       </m:Toolbar>
-    </m:headerContent>
-
-    <m:content>
 
       <!-- 🔹 Información del rol -->
       <m:VBox id="roleInfoBox" class="sapUiSmallMargin">
@@ -123,24 +114,9 @@
                 <m:Text text="{selectedRole>USERNAME}" />
               </tl:template>
             </tl:Column>
-
-            <tl:Column>
-              <m:Label text="Empresa" />
-              <tl:template>
-                <m:Text text="{selectedRole>COMPANYNAME}" />
-              </tl:template>
-            </tl:Column>
-
-            <tl:Column>
-              <m:Label text="Departamento" />
-              <tl:template>
-                <m:Text text="{selectedRole>DEPARTMENT}" />
-              </tl:template>
-            </tl:Column>
           </tl:columns>
         </tl:Table>
       </m:Panel>
 
-    </m:content>
-  </m:Page>
+  </m:VBox>
 </mvc:View>

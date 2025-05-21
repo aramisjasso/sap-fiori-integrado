@@ -24,9 +24,7 @@ sap.ui.define([
     onInit: function () {
       this._catalogsLoaded = false;
       this.initModels();
-
-      const oRouter = this.getRouter();
-      oRouter.getRoute("RouteRolesMaster").attachPatternMatched(this._onRouteMatched, this);
+      this.loadRolesData();
 
       if (!this._pDialog) {
         this._pDialog = Fragment.load({
@@ -37,10 +35,6 @@ sap.ui.define([
           return oDialog;
         }.bind(this));
       }
-    },
-
-    _onRouteMatched: function () {
-      this.loadRolesData();
     },
 
     initModels: function () {
@@ -197,28 +191,6 @@ sap.ui.define([
       }
     },
 
-    onStatusFilterChange: function (oEvent) {
-      const sKey = oEvent.getSource().getSelectedKey();
-      const oRolesModel = this.getOwnerComponent().getModel("roles");
-      const aAllRoles = oRolesModel.getProperty("/valueAll") || [];
-
-      let aFiltered = [];
-
-      switch (sKey) {
-        case "active":
-          aFiltered = aAllRoles.filter(r => r.DETAIL_ROW?.ACTIVED === true && r.DETAIL_ROW?.DELETED === false);
-          break;
-        case "inactive":
-          aFiltered = aAllRoles.filter(r => r.DETAIL_ROW?.ACTIVED === false && r.DETAIL_ROW?.DELETED === false);
-          break;
-        default:
-          aFiltered = aAllRoles.filter(r => r.DETAIL_ROW?.DELETED === false);
-      }
-
-      oRolesModel.setProperty("/value", aFiltered);
-      oRolesModel.setProperty("/filterKey", sKey);
-    },
-
     onRemovePrivilege: function (oEvent) {
       const oModel = this.getView().getModel("newRoleModel");
       const oData = oModel.getData();
@@ -242,29 +214,41 @@ sap.ui.define([
       }
     },
 
-    onRoleSelected: function () {
+    onRoleSelected: async function () {
       const oTable = this.byId("rolesTable");
       const iIndex = oTable.getSelectedIndex();
-
       if (iIndex === -1) {
         MessageToast.show("Selecciona un rol válido.");
         return;
       }
 
-      const oContext = oTable.getContextByIndex(iIndex);
-      if (!oContext) {
-        MessageBox.error("No se pudo obtener el contexto del rol seleccionado.");
-        return;
+      const oRolesView = this.getView().getParent().getParent(); // sube hasta Roles.view
+      const oUiStateModel = oRolesView.getModel("uiState");
+
+      if (oUiStateModel) {
+        oUiStateModel.setProperty("/isDetailVisible", true);
       }
 
-      const oSelectedRole = oContext.getObject();
-      const oSelectedRoleModel = new JSONModel(oSelectedRole);
-      this.getOwnerComponent().setModel(oSelectedRoleModel, "selectedRole");
 
-      this.getOwnerComponent().getRouter().navTo("RouteRolesDetail", {
-        roleId: encodeURIComponent(oSelectedRole.ROLEID)
-      });
+      const oRole = oTable.getContextByIndex(iIndex).getObject();
+      const sId = encodeURIComponent(oRole.ROLEID);
+
+      try {
+        const res = await fetch(`http://localhost:4004/api/sec/rolesCRUD?procedure=get&type=all&roleid=${sId}`, {
+          method: "POST"
+        });
+        const result = await res.json();
+        if (!result?.value?.length) {
+          MessageBox.warning("No se encontró información del rol.");
+          return;
+        }
+
+        this.getOwnerComponent().setModel(new JSONModel(result.value[0]), "selectedRole");
+      } catch (e) {
+        MessageBox.error("Error al obtener el rol: " + e.message);
+      }
     },
+
 
     onMultiSearch: function () {
       const sQuery = this.byId("searchRoleName").getValue().toLowerCase();

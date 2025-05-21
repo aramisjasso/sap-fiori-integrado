@@ -7,7 +7,7 @@ sap.ui.define([
   "sap/viz/ui5/controls/VizFrame",
   "sap/viz/ui5/data/FlattenedDataset",
   "sap/viz/ui5/controls/common/feeds/FeedItem"
-], function(Controller, JSONModel, MessageToast, DateFormat, MessageBox) {
+], function(Controller, JSONModel, MessageToast, DateFormat, MessageBox, VizFrame, FlattenedDataset, FeedItem) {
   "use strict";
 
   return Controller.extend("com.invertions.sapfiorimodinv.controller.investments.Investments", {
@@ -293,7 +293,9 @@ sap.ui.define([
                 INDICATORS: `MA(${oItem.short_ma?.toFixed(2)}/${oItem.long_ma?.toFixed(2)})`,
                 SIGNALS: oSignal?.type?.toUpperCase() || "-", // "BUY", "SELL" o vacío
                 RULES: oSignal?.reasoning || "-",
-                SHARES: currentShares.toFixed(4)  // Muestra el acumulado diario
+                SHARES: currentShares.toFixed(4),  // Muestra el acumulado diario
+                BUY_SIGNAL: oSignal?.type === 'buy' ? oItem.close : null, // Solo valor en compra
+                SELL_SIGNAL: oSignal?.type === 'sell' ? oItem.close : null // Solo valor en venta
             };
         });
     },

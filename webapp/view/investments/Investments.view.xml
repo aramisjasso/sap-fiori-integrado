@@ -108,16 +108,17 @@
                                                                 name="ShortMA" value="{strategyResultModel>SHORT_MA}"/>
                                                             <viz.data:MeasureDefinition
                                                                 name="LongMA" value="{strategyResultModel>LONG_MA}"/>
-                                                            <viz.data:MeasureDefinition name="Señal BUY" 
+                                                            <!-- <viz.data:MeasureDefinition name="SeñalBuy" 
                                                                 value="{strategyResultModel>BUY_SIGNAL}"/>
-                                                            <viz.data:MeasureDefinition name="Señal SELL" 
-                                                                value="{strategyResultModel>SELL_SIGNAL}"/>
+                                                            <viz.data:MeasureDefinition name="SeñalSell" 
+                                                                value="{strategyResultModel>SELL_SIGNAL}"/> -->
                                                         </viz.data:measures>
                                                     </viz.data:FlattenedDataset>
                                                 </viz:dataset>
                                                 <viz:feeds>
                                                     <viz.feeds:FeedItem uid="timeAxis" type="Dimension" values="Fecha"/>
-                                                    <viz.feeds:FeedItem uid="valueAxis" type="Measure" values="PrecioCierre,ShortMA,LongMA,Señal BUY,Señal SELL"/>
+                                                    <viz.feeds:FeedItem uid="valueAxis" type="Measure" values="PrecioCierre,ShortMA,LongMA"/>
+                                                    <!-- <viz.feeds:FeedItem uid="signalAxis" type="Measure" values="SeñalBuy,SeñalSell"/> -->
                                                 </viz:feeds>
                                             </viz:VizFrame>
                                             
