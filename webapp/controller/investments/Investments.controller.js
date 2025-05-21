@@ -69,8 +69,32 @@ sap.ui.define([
         hasResults: false,
         chart_data: [],
         signals: [],
-        result: null
+        result: null,
+
       }), "strategyResultModel");
+
+          // Modelo historial de inversiones
+    this.getView().setModel(new JSONModel({strategies: [{
+                date: new Date(2024, 4, 15),  // Mayo 15, 2024
+                strategyName: "Moving Average Crossover 1",
+                symbol: "AAPL",
+                result: 2500.50,
+                status: "Completado"
+            },
+            {
+                date: new Date(2024, 4, 16),  // Mayo 16, 2024
+                strategyName: "Moving Average Crossover 2",
+                symbol: "TSLA",
+                result: -1200.30,
+                status: "Completado"
+            },
+            {
+                date: new Date(2024, 4, 17),  // Mayo 17, 2024
+                strategyName: "Moving Average Crossover 3",
+                symbol: "MSFT",
+                result: 3400.80,
+                status: "En Proceso"
+            }]}), "historyModel");
     },
 
     // Carga textos i18n
@@ -113,12 +137,38 @@ sap.ui.define([
             dataLabel: { visible: false },
             marker: {
                 visible: true,
-                shape: ["circle", "circle", "circle", "triangleUp", "triangleDown"]
+                shape: ["circle", "circle", "circle", "triangleUp", "triangleDown"],
+                size: 2,
+            },
+            dataPoint: { 
+                visible: true,
+                formatRules: [{
+                    dataContext: { BUY_SIGNAL: "*" },
+                    properties: {
+                        marker: {
+                            visible: true,
+                            size: 15,
+                            shape: "triangleUp",
+                            color: "#2ecc40"
+                        }
+                    }
+                }, {
+                    dataContext: { SELL_SIGNAL: "*" },
+                    properties: {
+                        marker: {
+                            visible: true,
+                            size: 15,
+                            shape: "triangleDown",
+                            color: "#ff4136"
+                        }
+                    }
+                }]
             },
             window: {
                 start: "firstDataPoint",
                 end: "lastDataPoint"
-            }
+            },
+            handleNull: "zero"
         },
         valueAxis: { 
             title: { text: "Precio de Cierre (USD)" }, 
@@ -225,7 +275,7 @@ sap.ui.define([
     _handleAnalysisResponse: function(data, oStrategyModel, oResultModel) {
         console.log("Datos recibidos:", data);
         console.log("Datos para la gráfica:", data.value.chart_data);
-         console.log("Señales:", data.value.signals);
+         console.log("Señales:", data.value.signals); 
         
         // Actualizar modelo de resultados
         oResultModel.setData({
@@ -293,7 +343,10 @@ sap.ui.define([
                 INDICATORS: `MA(${oItem.short_ma?.toFixed(2)}/${oItem.long_ma?.toFixed(2)})`,
                 SIGNALS: oSignal?.type?.toUpperCase() || "-", // "BUY", "SELL" o vacío
                 RULES: oSignal?.reasoning || "-",
-                SHARES: currentShares.toFixed(4)  // Muestra el acumulado diario
+                SHARES: currentShares.toFixed(4),  // Muestra el acumulado diario
+                BUY_SIGNAL: oSignal?.type === 'buy' ? oItem.close : null,
+                SELL_SIGNAL: oSignal?.type === 'sell' ? oItem.close : null,
+                
             };
         });
     },
@@ -340,6 +393,50 @@ sap.ui.define([
         if (!value) return "";
         return `$${parseFloat(value).toFixed(2)}`;
     },
+
+onHistoryPress: function(oEvent) {
+    // Cargar el popover
+    if (!this._oHistoryPopover) {
+        this._oHistoryPopover = sap.ui.xmlfragment(
+            "com.invertions.sapfiorimodinv.view.investments.fragments.InvestmentHistoryPanel",
+            this
+        );
+        this.getView().addDependent(this._oHistoryPopover);
+    }
+    
+    // Abrir el popover junto al botón que lo activó
+    this._oHistoryPopover.openBy(oEvent.getSource());
+},
+
+
+onLoadStrategy: function(oEvent) {
+    var oItem = oEvent.getSource().getBindingContext("historyModel").getObject();
+    
+    // Cargar la estrategia seleccionada
+    var oStrategyModel = this.getView().getModel("strategyAnalysisModel");
+    var oResultModel = this.getView().getModel("strategyResultModel");
+    
+    // Restaurar configuración
+    oStrategyModel.setProperty("/symbol", oItem.symbol);
+    oStrategyModel.setProperty("/shortSMA", oItem.shortSMA);
+    oStrategyModel.setProperty("/longSMA", oItem.longSMA);
+    
+    // Restaurar datos
+    oResultModel.setProperty("/chart_data", oItem.chartData);
+    oResultModel.setProperty("/signals", oItem.signals);
+    
+    // Cerrar diálogo y mostrar mensaje
+    this._oHistoryPopover.close();
+    MessageToast.show("Estrategia cargada correctamente");
+},
+
+// Limpiar en onExit
+onExit: function() {
+    if (this._oHistoryDialog) {
+        this._oHistoryDialog.destroy();
+        this._oHistoryDialog = null;
+    }
+},
 
     onDataPointSelect: function(oEvent) {
       const oData = oEvent.getParameter("data");

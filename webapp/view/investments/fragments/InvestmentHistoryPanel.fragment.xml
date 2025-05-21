@@ -1,0 +1,77 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+    <ResponsivePopover
+        title="Historial de Estrategias"
+        placement="Bottom"
+        showHeader="true"
+        contentWidth="800px"
+        contentHeight="400px"
+        class="sapUiContentPadding">
+        <content>
+            <Table
+                id="historyTable"
+                items="{historyModel>/strategies}"
+                mode="SingleSelectMaster"
+                selectionChange=".onStrategySelect"
+                growing="true"
+                growingThreshold="5">
+                
+                <columns>
+                    <Column minScreenWidth="Tablet" demandPopin="true">
+                        <Text text="Nombre"/>
+                    </Column>
+                    <Column minScreenWidth="Tablet" demandPopin="true">
+                        <Text text="Fecha"/>
+                    </Column>
+                    <Column minScreenWidth="Tablet" demandPopin="true">
+                        <Text text="Símbolo"/>
+                    </Column>
+                    <Column minScreenWidth="Tablet" demandPopin="true">
+                        <Text text="Resultado"/>
+                    </Column>
+                    <Column width="4rem">
+                        <Text text=""/>
+                    </Column>
+                </columns>
+
+                <items>
+                    <ColumnListItem type="Active">
+                        <cells>
+                            <Text text="{historyModel>strategyName}"/>
+                            <Text text="{
+                                path: 'historyModel>date',
+                                formatter: '.formatDate'
+                            }"/>
+                            <Text text="{historyModel>symbol}"/>
+                            <ObjectNumber
+                                number="{
+                                    path: 'historyModel>result',
+                                    formatter: '.formatCurrency'
+                                }"
+                                unit="USD"
+                                state="{= ${historyModel>result} > 0 ? 'Success' : 'Error'}"/>
+                            <Button
+                                icon="sap-icon://delete"
+                                type="Transparent"
+                                press=".onDeleteStrategy"
+                                tooltip="Eliminar estrategia"/>
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </content>
+        <footer>
+            <Toolbar>
+                <ToolbarSpacer/>
+                <Button 
+                    text="Cargar" 
+                    type="Emphasized"
+                    press=".onLoadStrategy"/>
+                <Button 
+                    text="Cerrar" 
+                    press=".onCloseHistoryPopover"/>
+            </Toolbar>
+        </footer>
+    </ResponsivePopover>
+</core:FragmentDefinition>

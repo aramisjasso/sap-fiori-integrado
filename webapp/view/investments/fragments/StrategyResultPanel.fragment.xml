@@ -13,7 +13,7 @@
                 </HBox>
                 <HBox justifyContent="SpaceBetween">
                     <Label text="Simbolo:" class="sapUiTinyMarginEnd"/>
-                    <Text text="{strategyResultModel>/symbol}"/>
+                    <Text text="{oSymbolModel>/selectedSymbol}"/>
                 </HBox>
                 <HBox justifyContent="SpaceBetween">
                     <Label text="Rango:" class="sapUiTinyMarginEnd"/>
