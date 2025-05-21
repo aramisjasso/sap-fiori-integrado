@@ -3,20 +3,24 @@
   xmlns:mvc="sap.ui.core.mvc"
   xmlns:tnt="sap.tnt"
   xmlns:f="sap.f"
-  xmlns="sap.m">
+  xmlns="sap.m"
+  models="{ appView: 'appView' }">
 
   <tnt:ToolPage id="mainToolPage" class="sapUiSizeCompact">
 
     <!-- Header -->
     <tnt:header>
       <f:ShellBar
+        visible="{= ${appView>/isLoggedIn} }"
         id="shellBar"
         title="Proyecto Final"
         showMenuButton="true"
         homeIcon="./resources/images/logo_sap.png"
         menuButtonPressed=".onToggleSideNav">
         <f:profile>
-          <Avatar id="mainAvatar" initials="US" press=".onUserPress" />
+          <Avatar id="mainAvatar" initials="{appView>/currentUser/initials}"
+            visible="{= ${appView>/isLoggedIn} }"
+            press=".onUserPress"  />        
         </f:profile>
       </f:ShellBar>
     </tnt:header>
@@ -26,7 +30,8 @@
       <tnt:SideNavigation
         id="sideNavigation"
         itemSelect=".onItemSelect"
-        selectedKey="main">
+        selectedKey="main"
+        visible="{= ${appView>/isLoggedIn} }">
 
         <tnt:NavigationList id="mainNavigationList">
           

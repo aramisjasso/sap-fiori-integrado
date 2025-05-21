@@ -7,7 +7,7 @@ sap.ui.define([
   "sap/viz/ui5/controls/VizFrame",
   "sap/viz/ui5/data/FlattenedDataset",
   "sap/viz/ui5/controls/common/feeds/FeedItem"
-], function(Controller, JSONModel, MessageToast, DateFormat, MessageBox) {
+], function(Controller, JSONModel, MessageToast, DateFormat, MessageBox, VizFrame, FlattenedDataset, FeedItem) {
   "use strict";
 
   return Controller.extend("com.invertions.sapfiorimodinv.controller.investments.Investments", {
@@ -21,7 +21,8 @@ sap.ui.define([
       DEFAULT_STOCK: 1,
       DEFAULT_SHORT_SMA: 50,
       DEFAULT_LONG_SMA: 200,
-      API_ENDPOINT: "http://localhost:3033/api/inv/simulation?strategy=macrossover"
+      //API_ENDPOINT: "http://localhost:3033/api/inv/simulation?strategy=macrossover",
+      ENDPOINT_TEST: "http://localhost:3033/api/inv/getSimulation?id=TSLA_2025-05-21_02-29-47-664Z"
     },
 
     onInit: function() {
@@ -137,33 +138,11 @@ sap.ui.define([
             dataLabel: { visible: false },
             marker: {
                 visible: true,
+                forceVisible: true,
                 shape: ["circle", "circle", "circle", "triangleUp", "triangleDown"],
-                size: 2,
+                size: 5,
             },
-            dataPoint: { 
-                visible: true,
-                formatRules: [{
-                    dataContext: { BUY_SIGNAL: "*" },
-                    properties: {
-                        marker: {
-                            visible: true,
-                            size: 15,
-                            shape: "triangleUp",
-                            color: "#2ecc40"
-                        }
-                    }
-                }, {
-                    dataContext: { SELL_SIGNAL: "*" },
-                    properties: {
-                        marker: {
-                            visible: true,
-                            size: 15,
-                            shape: "triangleDown",
-                            color: "#ff4136"
-                        }
-                    }
-                }]
-            },
+          
             window: {
                 start: "firstDataPoint",
                 end: "lastDataPoint"
@@ -181,17 +160,11 @@ sap.ui.define([
         },
         title: { text: "Histórico de Precios de Acciones" },
         legend: { visible: true },
-        toolTip: { 
+        tooltip: {
             visible: true,
-            formatString: [
-                ["PrecioCierre", ":.2f USD"],
-                ["ShortMA", ":.2f"],
-                ["LongMA", ":.2f"],
-                ["Señal BUY", ":.2f USD"],
-                ["Señal SELL", ":.2f USD"]
-            ]
         },
         interaction: {
+            behaviorType : null,
             zoom: { enablement: "enabled" },
             selectability: { mode: "single" }
         }
@@ -250,22 +223,29 @@ sap.ui.define([
     },
 
     _callAnalysisAPI: function(sSymbol, oStrategyModel, oResultModel) {
-      var oRequestBody = {
+      /*var oRequestBody = {
         symbol: sSymbol,
         startDate: this._formatDate(oStrategyModel.getProperty("/startDate")),
         endDate: this._formatDate(oStrategyModel.getProperty("/endDate")),
         amount: this._CONSTANTS.DEFAULT_BALANCE,
         userId: "ARAMIS",
         specs: `SHORT:${oStrategyModel.getProperty("/shortSMA")}&LONG:${oStrategyModel.getProperty("/longSMA")}`
+      };*/
+      // TEST
+      var oRequestBody = {
+        idUser: "ARAMIS"
       };
-
-      fetch(this._CONSTANTS.API_ENDPOINT, {
+      //fetch(this._CONSTANTS.API_ENDPOINT, {
+      //TEST
+      fetch(this._CONSTANTS.ENDPOINT_TEST, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(oRequestBody)
       })
       .then(response => response.ok ? response.json() : Promise.reject(response))
-      .then(data => this._handleAnalysisResponse(data, oStrategyModel, oResultModel))
+      //.then(data => this._handleAnalysisResponse(data.value, oStrategyModel, oResultModel))
+      // TEST
+      .then(data => this._handleAnalysisResponse(data.value[0], oStrategyModel, oResultModel))
       .catch(error => {
         console.error("Error:", error);
         MessageBox.error("Error al obtener datos de simulación");
@@ -273,20 +253,19 @@ sap.ui.define([
     },
 
     _handleAnalysisResponse: function(data, oStrategyModel, oResultModel) {
-        console.log("Datos recibidos:", data);
-        console.log("Datos para la gráfica:", data.value.chart_data);
-         console.log("Señales:", data.value.signals); 
+        console.log("Datos para la gráfica:", data.chart_data);
+         console.log("Señales:", data.signals);
         
         // Actualizar modelo de resultados
         oResultModel.setData({
             hasResults: true,
             chart_data: this._prepareTableData(
-                data.value.chart_data || [],
-                data.value.signals || [],
-                data.value.transactions || []
+                data.chart_data || [],
+                data.signals || [],
+                data.transactions || []
             ),
-            signals: data.value.signals || [],
-            result: data.value.result || 0,
+            signals: data.signals || [],
+            result: data.result || 0,
             simulationName: "Moving Average Crossover",
             symbol: oStrategyModel.getProperty("/symbol"),
             startDate: oStrategyModel.getProperty("/startDate"),
@@ -295,7 +274,7 @@ sap.ui.define([
 
         // Actualizar balance
         var currentBalance = oStrategyModel.getProperty("/balance") || 0;
-        var gainPerShare = data.value.result || 0;
+        var gainPerShare = data.result || 0;
         var stock = oStrategyModel.getProperty("/stock") || 1;
         var totalGain = +(gainPerShare * stock).toFixed(2);
         
@@ -394,49 +373,54 @@ sap.ui.define([
         return `$${parseFloat(value).toFixed(2)}`;
     },
 
-onHistoryPress: function(oEvent) {
-    // Cargar el popover
-    if (!this._oHistoryPopover) {
-        this._oHistoryPopover = sap.ui.xmlfragment(
-            "com.invertions.sapfiorimodinv.view.investments.fragments.InvestmentHistoryPanel",
-            this
-        );
-        this.getView().addDependent(this._oHistoryPopover);
-    }
-    
-    // Abrir el popover junto al botón que lo activó
-    this._oHistoryPopover.openBy(oEvent.getSource());
-},
+
+    //Historial de inversiones
+    onHistoryPress: function(oEvent) {
+      if (!this._oHistoryPopover) {
+          this._oHistoryPopover = sap.ui.xmlfragment(
+              "com.invertions.sapfiorimodinv.view.investments.fragments.InvestmentHistoryPanel",
+              this
+          );
+          this.getView().addDependent(this._oHistoryPopover);
+      }
+      
+      if (this._oHistoryPopover.isOpen()) {
+          this._oHistoryPopover.close();
+          return;
+      }
+      
+      // Abrir la ventana
+      this._oHistoryPopover.openBy(oEvent.getSource());
+  },
 
 
-onLoadStrategy: function(oEvent) {
-    var oItem = oEvent.getSource().getBindingContext("historyModel").getObject();
-    
-    // Cargar la estrategia seleccionada
-    var oStrategyModel = this.getView().getModel("strategyAnalysisModel");
-    var oResultModel = this.getView().getModel("strategyResultModel");
-    
-    // Restaurar configuración
-    oStrategyModel.setProperty("/symbol", oItem.symbol);
-    oStrategyModel.setProperty("/shortSMA", oItem.shortSMA);
-    oStrategyModel.setProperty("/longSMA", oItem.longSMA);
-    
-    // Restaurar datos
-    oResultModel.setProperty("/chart_data", oItem.chartData);
-    oResultModel.setProperty("/signals", oItem.signals);
-    
-    // Cerrar diálogo y mostrar mensaje
-    this._oHistoryPopover.close();
-    MessageToast.show("Estrategia cargada correctamente");
-},
+    onLoadStrategy: function(oEvent) {
+        var oItem = oEvent.getSource().getBindingContext("historyModel").getObject();
+        
+        // Cargar la estrategia seleccionada
+        var oStrategyModel = this.getView().getModel("strategyAnalysisModel");
+        var oResultModel = this.getView().getModel("strategyResultModel");
+        
+        // Restaurar configuración
+        oStrategyModel.setProperty("/symbol", oItem.symbol);
+        oStrategyModel.setProperty("/shortSMA", oItem.shortSMA);
+        oStrategyModel.setProperty("/longSMA", oItem.longSMA);
+        
+        // Restaurar datos
+        oResultModel.setProperty("/chart_data", oItem.chartData);
+        oResultModel.setProperty("/signals", oItem.signals);
+        
+        // Cerrar diálogo y mostrar mensaje
+        this._oHistoryPopover.close();
+        MessageToast.show("Estrategia cargada correctamente");
+    },
 
-// Limpiar en onExit
-onExit: function() {
-    if (this._oHistoryDialog) {
-        this._oHistoryDialog.destroy();
-        this._oHistoryDialog = null;
-    }
-},
+    //Cerrar la ventana
+    onCloseHistoryPopover: function() {
+        if (this._oHistoryPopover) {
+            this._oHistoryPopover.close();
+        }
+    },
 
     onDataPointSelect: function(oEvent) {
       const oData = oEvent.getParameter("data");
@@ -449,6 +433,13 @@ onExit: function() {
           CLOSE: oSelectedData.data.CLOSE
         });
       }
-    }
+    },
+
+    onExit: function() {
+        if (this._oHistoryPopover) {
+            this._oHistoryPopover.destroy();
+            this._oHistoryPopover = null;
+        }
+    },
   });
 });

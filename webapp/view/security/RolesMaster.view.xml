@@ -6,10 +6,6 @@
   xmlns:tl="sap.ui.table"
   xmlns:rowmodes="sap.ui.table.rowmodes"
   >
-
-  <m:Page id="rolesMaster" title="Roles" class="sapUiContentPadding">
-
-
     <m:Toolbar design="Transparent" class="customRoleToolbar">
       <m:Button text="Crear" icon="sap-icon://add" type="Accept" press=".onOpenDialog" />
 
@@ -17,16 +13,8 @@
 
       <m:ToolbarSpacer />
       <m:ToolbarSpacer />
-      <m:Select id="roleStatusFilter" width="12rem" change=".onStatusFilterChange" forceSelection="true">
-        <m:items>
-          <core:Item key="all" text="Todos" />
-          <core:Item key="active" text="Activos" />
-          <core:Item key="inactive" text="Inactivos" />
-        </m:items>
-      </m:Select>
 
     </m:Toolbar>
-
 
     <tl:Table id="rolesTable" rows="{roles>/value}" selectionMode="Single" selectionBehavior="RowOnly" rowSelectionChange=".onRoleSelected" enableColumnReordering="true" alternateRowColors="true" rowActionCount="2" width="100%">
 
@@ -74,7 +62,4 @@
         </m:OverflowToolbar>
       </tl:footer>
     </tl:Table>
-
-
-  </m:Page>
 </mvc:View>

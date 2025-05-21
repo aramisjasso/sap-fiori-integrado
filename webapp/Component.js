@@ -1,7 +1,8 @@
 sap.ui.define([
     "sap/ui/core/UIComponent",
-    "com/invertions/sapfiorimodinv/model/models"
-], (UIComponent, models) => {
+    "com/invertions/sapfiorimodinv/model/models",
+    "sap/ui/model/json/JSONModel"
+], (UIComponent, models, JSONModel) => {
     "use strict";
 
     return UIComponent.extend("com.invertions.sapfiorimodinv.Component", {
@@ -15,6 +16,13 @@ sap.ui.define([
         init() {
             // call the base component's init function
             UIComponent.prototype.init.apply(this, arguments);
+
+            // Modelo global para sesión y usuario
+            const oAppModel = new JSONModel({
+                isLoggedIn: false,
+                currentUser: {}
+            });
+            this.setModel(oAppModel, "appView");
 
             // set the device model
             this.setModel(models.createDeviceModel(), "device");

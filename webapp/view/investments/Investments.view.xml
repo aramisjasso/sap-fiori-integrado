@@ -25,7 +25,8 @@
                     <IconTabHeader
                         selectedKey="{viewModel>/selectedTab}"
                         select=".onTabSelect"
-                        mode="Inline">
+                        mode="Inline"
+                        class="sapUiMediumMarginTopBottom sapUiSizeCozy">
                         <items>
                             <IconTabFilter text="Table" key="table"/>
                             <IconTabFilter text="Chart" key="chart"/>
@@ -39,18 +40,19 @@
                 </OverflowToolbar>
 
                 <!-- Table View -->
-                <VBox visible="{= ${viewModel>/selectedTab} === 'table'}">
+                <VBox visible="{= ${viewModel>/selectedTab} === 'table'}" class="sapUiSmallMarginTop sapUiSmallMarginBegin">
                     <FlexBox renderType="Bare" alignItems="Stretch" justifyContent="Start" width="100%">
                         <!-- Data Table -->
                         <VBox fitContainer="true" width="100%" class="sapUiSmallMarginEnd">
                             <layoutData>
                                 <FlexItemData growFactor="1"/>
                             </layoutData>
-                            <ScrollContainer height="60%" vertical="true" horizontal="false" width="100%">
+                            <ScrollContainer height="600px" vertical="true" horizontal="false" width="100%">
                                 <Table items="{strategyResultModel>/chart_data}" 
                                        width="100%" 
                                        growing="true" 
-                                       growingThreshold="100">
+                                       growingThreshold="100"
+                                       >
                                     <columns>
                                         <Column><Text text="Date"/></Column>
                                         <Column><Text text="Open"/></Column>
@@ -93,7 +95,7 @@
                 </VBox>
 
                 <!-- Chart View -->
-                <VBox visible="{= ${viewModel>/selectedTab} === 'chart'}">
+                <VBox visible="{= ${viewModel>/selectedTab} === 'chart'}" class="sapUiSmallMarginTop sapUiSmallMarginBegin">
                     <FlexBox renderType="Bare" alignItems="Stretch" justifyContent="Start" height="auto" width="100%">
                         <!-- Chart Panel -->
                         <VBox fitContainer="true" height="100%" width="100%" class="sapUiSmallMarginEnd">
@@ -147,12 +149,10 @@
                                 </content>
                             </Panel>
                         </VBox>
-                        <!-- Strategy Analysis and Results -->
+                        <!-- Strategy Analysis Panel -->
                         <VBox width="300px" class="sapUiSmallMarginBottom">
                             <core:Fragment id="strategyAnalysisPanelChart" 
                                          fragmentName="com.invertions.sapfiorimodinv.view.investments.fragments.StrategyAnalysisPanel" 
-                                         type="XML"/>
-                            <core:Fragment fragmentName="com.invertions.sapfiorimodinv.view.investments.fragments.InvestmentHistoryPanel" 
                                          type="XML"/>
                         </VBox>
                     </FlexBox>
