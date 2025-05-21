@@ -21,7 +21,8 @@ sap.ui.define([
       DEFAULT_STOCK: 1,
       DEFAULT_SHORT_SMA: 50,
       DEFAULT_LONG_SMA: 200,
-      API_ENDPOINT: "http://localhost:3033/api/inv/simulation?strategy=macrossover"
+      //API_ENDPOINT: "http://localhost:3033/api/inv/simulation?strategy=macrossover",
+      ENDPOINT_TEST: "http://localhost:3033/api/inv/getSimulation?id=TSLA_2025-05-21_02-29-47-664Z"
     },
 
     onInit: function() {
@@ -200,22 +201,29 @@ sap.ui.define([
     },
 
     _callAnalysisAPI: function(sSymbol, oStrategyModel, oResultModel) {
-      var oRequestBody = {
+      /*var oRequestBody = {
         symbol: sSymbol,
         startDate: this._formatDate(oStrategyModel.getProperty("/startDate")),
         endDate: this._formatDate(oStrategyModel.getProperty("/endDate")),
         amount: this._CONSTANTS.DEFAULT_BALANCE,
         userId: "ARAMIS",
         specs: `SHORT:${oStrategyModel.getProperty("/shortSMA")}&LONG:${oStrategyModel.getProperty("/longSMA")}`
+      };*/
+      // TEST
+      var oRequestBody = {
+        idUser: "ARAMIS"
       };
-
-      fetch(this._CONSTANTS.API_ENDPOINT, {
+      //fetch(this._CONSTANTS.API_ENDPOINT, {
+      //TEST
+      fetch(this._CONSTANTS.ENDPOINT_TEST, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(oRequestBody)
       })
       .then(response => response.ok ? response.json() : Promise.reject(response))
-      .then(data => this._handleAnalysisResponse(data, oStrategyModel, oResultModel))
+      //.then(data => this._handleAnalysisResponse(data.value, oStrategyModel, oResultModel))
+      // TEST
+      .then(data => this._handleAnalysisResponse(data.value[0], oStrategyModel, oResultModel))
       .catch(error => {
         console.error("Error:", error);
         MessageBox.error("Error al obtener datos de simulación");
@@ -223,20 +231,19 @@ sap.ui.define([
     },
 
     _handleAnalysisResponse: function(data, oStrategyModel, oResultModel) {
-        console.log("Datos recibidos:", data);
-        console.log("Datos para la gráfica:", data.value.chart_data);
-         console.log("Señales:", data.value.signals);
+        console.log("Datos para la gráfica:", data.chart_data);
+         console.log("Señales:", data.signals);
         
         // Actualizar modelo de resultados
         oResultModel.setData({
             hasResults: true,
             chart_data: this._prepareTableData(
-                data.value.chart_data || [],
-                data.value.signals || [],
-                data.value.transactions || []
+                data.chart_data || [],
+                data.signals || [],
+                data.transactions || []
             ),
-            signals: data.value.signals || [],
-            result: data.value.result || 0,
+            signals: data.signals || [],
+            result: data.result || 0,
             simulationName: "Moving Average Crossover",
             symbol: oStrategyModel.getProperty("/symbol"),
             startDate: oStrategyModel.getProperty("/startDate"),
@@ -245,7 +252,7 @@ sap.ui.define([
 
         // Actualizar balance
         var currentBalance = oStrategyModel.getProperty("/balance") || 0;
-        var gainPerShare = data.value.result || 0;
+        var gainPerShare = data.result || 0;
         var stock = oStrategyModel.getProperty("/stock") || 1;
         var totalGain = +(gainPerShare * stock).toFixed(2);
         
