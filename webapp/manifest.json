@@ -154,7 +154,7 @@
                     "viewId": "UsersList",
                     "viewName": "UsersList",
                     "viewType": "XML",
-                    "viewPath": "com.invertions.sapfiorimodinv.view"
+                    "viewPath": "com.invertions.sapfiorimodinv.view.security"
                 },
                 "TargetUserDetails":{
                     "viewId": "UserDetails",
