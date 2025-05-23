@@ -6,8 +6,10 @@ sap.ui.define([
   "sap/m/MessageBox",
   "sap/viz/ui5/controls/VizFrame",
   "sap/viz/ui5/data/FlattenedDataset",
-  "sap/viz/ui5/controls/common/feeds/FeedItem"
-], function(Controller, JSONModel, MessageToast, DateFormat, MessageBox, VizFrame, FlattenedDataset, FeedItem) {
+  "sap/viz/ui5/controls/common/feeds/FeedItem",
+  "sap/ui/model/Filter",
+  "sap/ui/model/FilterOperator"
+], function(Controller, JSONModel, MessageToast, DateFormat, MessageBox, VizFrame, FlattenedDataset, FeedItem, Filter, FilterOperator) {
   "use strict";
 
   return Controller.extend("com.invertions.sapfiorimodinv.controller.investments.Investments", {
@@ -22,7 +24,7 @@ sap.ui.define([
       DEFAULT_SHORT_SMA: 50,
       DEFAULT_LONG_SMA: 200,
       //API_ENDPOINT: "http://localhost:3033/api/inv/simulation?strategy=macrossover",
-      ENDPOINT_TEST: "http://localhost:3033/api/inv/getSimulation?id=TSLA_2025-05-21_02-29-47-664Z"
+      ENDPOINT_TEST: "http://localhost:3033/api/inv/getSimulation?id=AAPL_2025-05-21_21-32-49-678Z"
     },
 
     onInit: function() {
@@ -95,7 +97,16 @@ sap.ui.define([
                 symbol: "MSFT",
                 result: 3400.80,
                 status: "En Proceso"
-            }]}), "historyModel");
+
+            }],
+            filteredCount: 0,    
+            selectedCount: 0,    
+            filters: {            
+                dateRange: null,
+                investmentRange: [0, 10000],
+                profitRange: [-100, 100]
+            }
+          }), "historyModel");
     },
 
     // Carga textos i18n
@@ -422,18 +433,171 @@ sap.ui.define([
         }
     },
 
-    onDataPointSelect: function(oEvent) {
-      const oData = oEvent.getParameter("data");
-      if (!oData || oData.length === 0) return;
-
-      const oSelectedData = oData[0];
-      if (oSelectedData.data.DATE && oSelectedData.data.CLOSE !== undefined) {
-        this.getView().getModel("viewModel").setProperty("/selectedPoint", {
-          DATE: oSelectedData.data.DATE,
-          CLOSE: oSelectedData.data.CLOSE
-        });
-      }
+    onDeleteSelected: function() {
+      const oTable = this.byId("historyTable");
+      const aSelectedItems = oTable.getSelectedItems();
+      
+      if (!aSelectedItems.length) return;
+      
+      MessageBox.confirm("¿Desea eliminar las " + aSelectedItems.length + " estrategias seleccionadas?", {
+          onClose: function(oAction) {
+              if (oAction === MessageBox.Action.OK) {
+                  const oModel = this.getView().getModel("historyModel");
+                  const aStrategies = oModel.getProperty("/strategies");
+                  const aSelectedPaths = aSelectedItems.map(item => 
+                      parseInt(item.getBindingContext("historyModel").getPath().split("/")[2])
+                  );
+                  
+                  // Eliminar elementos seleccionados
+                  const aFilteredStrategies = aStrategies.filter((_, index) => 
+                      !aSelectedPaths.includes(index)
+                  );
+                  
+                  oModel.setProperty("/strategies", aFilteredStrategies);
+                  this._saveStrategiesToLocalStorage(aFilteredStrategies);
+                  MessageToast.show("Estrategias eliminadas correctamente");
+              }
+          }.bind(this)
+      });
     },
+
+onStrategyNameClick: function(oEvent) {
+    const oInput = oEvent.getSource();
+    oInput.setEditable(true);
+    
+    // Dar foco al input después de hacerlo editable
+    setTimeout(() => {
+        oInput.focus();
+        // Seleccionar todo el texto
+        oInput.selectText(0, oInput.getValue().length);
+    }, 100);
+},
+
+onStrategyNameChange: function(oEvent) {
+    const sNewValue = oEvent.getParameter("value");
+    const oInput = oEvent.getSource();
+    const sPath = oInput.getBindingContext("historyModel").getPath();
+    
+    // Optional: Add validation here if needed
+    if (!sNewValue.trim()) {
+        oInput.setValueState("Error");
+        oInput.setValueStateText("El nombre no puede estar vacío");
+        return;
+    }
+    
+    oInput.setValueState("None");
+},
+
+onStrategyNameSubmit: function(oEvent) {
+    const oInput = oEvent.getSource();
+    const sNewValue = oEvent.getParameter("value");
+    const sPath = oInput.getBindingContext("historyModel").getPath();
+    
+    // Validate and save
+    if (!sNewValue.trim()) {
+        MessageToast.show("El nombre no puede estar vacío");
+        return;
+    }
+    
+    // Update model
+    this.getView().getModel("historyModel").setProperty(sPath + "/strategyName", sNewValue.trim());
+    
+    // Exit edit mode
+    oInput.setEditable(false);
+    
+    // Optional: Save to backend/localStorage
+    this._saveStrategiesToLocalStorage();
+    
+    MessageToast.show("Nombre actualizado correctamente");
+},
+
+
+    // ******** FILTRO ********** //
+    onToggleAdvancedFilters: function() {
+        if (!this._oHistoryPopover) return;
+
+        // Get panel directly from popover content
+        const oPanel = sap.ui.getCore().byId("advancedFiltersPanel");
+        
+        if (oPanel) {
+            oPanel.setVisible(!oPanel.getVisible());
+        } else {
+            console.warn("Advanced filters panel not found");
+        }
+    },
+
+    _applyFilters: function() {
+        const oTable = this.byId("historyTable");
+        const oSearchField = this.byId("searchField");
+        const oDateRange = this.byId("dateRange");
+        const oSymbolFilter = this.byId("symbolFilter");
+        const oInvestmentRange = this.byId("investmentRange");
+        const oProfitRange = this.byId("profitRange");
+        
+        // Crear filtros
+        const aFilters = [];
+        
+        // Filtro de búsqueda
+        if (oSearchField.getValue()) {
+            aFilters.push(new Filter("strategyName", FilterOperator.Contains, oSearchField.getValue()));
+        }
+        
+        // Filtro de fechas
+        if (oDateRange.getDateValue() && oDateRange.getSecondDateValue()) {
+            aFilters.push(new Filter("date", FilterOperator.BT, 
+                oDateRange.getDateValue(), 
+                oDateRange.getSecondDateValue()));
+        }
+        
+        // Filtro de símbolo
+        if (oSymbolFilter.getValue()) {
+            aFilters.push(new Filter("symbol", FilterOperator.Contains, oSymbolFilter.getValue()));
+        }
+        
+        // Filtro de inversión
+        const [minInv, maxInv] = oInvestmentRange.getRange();
+        aFilters.push(new Filter("investment", FilterOperator.BT, minInv, maxInv));
+        
+        // Filtro de rentabilidad
+        const [minProfit, maxProfit] = oProfitRange.getRange();
+        aFilters.push(new Filter("result", FilterOperator.BT, minProfit, maxProfit));
+        
+        // Aplicar filtros
+        const oBinding = oTable.getBinding("items");
+        oBinding.filter(new Filter({
+            filters: aFilters,
+            and: true
+        }));
+        
+        // Actualizar contador
+        this.getView().getModel("historyModel").setProperty("/filteredCount", 
+            oBinding.getLength());
+    }, 
+
+    onSearch: function(oEvent) {
+      const sQuery = oEvent.getParameter("query");
+      const oTable = sap.ui.getCore().byId("historyTable");
+      const oBinding = oTable.getBinding("items");
+
+      if (!oBinding) return;
+
+      if (!sQuery) {
+          oBinding.filter([]);
+          return;
+      }
+
+      // Crear filtros para nombre y símbolo
+      const aFilters = [
+          new Filter("strategyName", FilterOperator.Contains, sQuery),
+          new Filter("symbol", FilterOperator.Contains, sQuery.toUpperCase())
+      ];
+
+      // Aplicar filtros con OR
+      oBinding.filter(new Filter({
+          filters: aFilters,
+          and: false
+      }));
+  },
 
     onExit: function() {
         if (this._oHistoryPopover) {

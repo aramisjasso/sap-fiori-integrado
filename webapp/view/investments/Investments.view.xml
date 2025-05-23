@@ -47,11 +47,14 @@
                             <layoutData>
                                 <FlexItemData growFactor="1"/>
                             </layoutData>
-                            <ScrollContainer height="600px" vertical="true" horizontal="false" width="100%">
+                            <ScrollContainer height="550px" vertical="true" horizontal="false" width="100%">
                                 <Table items="{strategyResultModel>/chart_data}" 
                                        width="100%" 
                                        growing="true" 
                                        growingThreshold="100"
+                                       sticky="ColumnHeaders"
+                                       busy="{= !${strategyResultModel>/chart_data} || ${strategyResultModel>/chart_data}.length === 0 }"
+                                       class="customTable"
                                        >
                                     <columns>
                                         <Column><Text text="Date"/></Column>
@@ -156,12 +159,11 @@
                                          type="XML"/>
                         </VBox>
                     </FlexBox>
-                </VBox>
-
-                <!-- Strategy Results -->
+                                            <!-- Strategy Results -->
                 <VBox width="auto">
                     <core:Fragment fragmentName="com.invertions.sapfiorimodinv.view.investments.fragments.StrategyResultPanel" 
                                  type="XML"/>
+                </VBox>
                 </VBox>
             </VBox>
         </content>

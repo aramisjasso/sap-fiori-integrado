@@ -78,4 +78,7 @@
     fill: #ff4136 !important;
 }
 
-
+.customTable .sapMListItems {
+  min-height: 500px;
+  height:500px
+}
