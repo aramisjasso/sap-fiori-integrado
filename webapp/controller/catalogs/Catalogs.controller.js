@@ -24,7 +24,7 @@ sap.ui.define(
           this._oDialog = null;
 
           $.ajax({
-            url: "http://localhost:4004/api/sec/getall",
+            url: "http://localhost:3033/api/catalogos/getAllLabels?type=catalog",
             method: "GET",
             success: function (data) {
               oModel.setData({ value: data.value });
@@ -79,8 +79,8 @@ sap.ui.define(
             LABEL: "",
             INDEX: "",
             COLLECTION: "",
-            SECTION: "seguridad", // Valor por defecto
-            SEQUENCE: 10, // Valor por defecto
+            SECTION: "", // Valor por defecto
+            SEQUENCE: null, // Valor por defecto
             IMAGE: "",
             DESCRIPTION: "",
             DETAIL_ROW: {
@@ -88,17 +88,11 @@ sap.ui.define(
               DELETED: false,
               DETAIL_ROW_REG: [
                 {
-                  CURRENT: false,
-                  REGDATE: new Date().toISOString(),
-                  REGTIME: new Date().toISOString(),
-                  REGUSER: "FIBARRAC",
-                },
-                {
                   CURRENT: true,
                   REGDATE: new Date().toISOString(),
                   REGTIME: new Date().toISOString(),
-                  REGUSER: "FIBARRAC",
-                },
+                  REGUSER: "MIGUEL",
+                }
               ],
             },
           });
@@ -152,13 +146,13 @@ sap.ui.define(
 
           // Preparar datos para enviar
           var payload = {
-            values: oData,
+            label: oData,
           };
 
           console.log("Data:", JSON.stringify(oData));
 
           $.ajax({
-            url: "http://localhost:4004/api/sec/newLabel", // Ajusta tu endpoint
+            url: "http://localhost:3033/api/catalogos/createLabel?type=1", // Ajusta tu endpoint
             method: "POST",
             contentType: "application/json",
             data: JSON.stringify(payload),
@@ -285,10 +279,9 @@ sap.ui.define(
             onClose: function (sAction) {
               if (sAction === MessageBox.Action.YES) {
                 $.ajax({
-                  url: "http://localhost:4004/api/sec/deleteLabel",
-                  method: "POST",
+                  url: `http://localhost:3033/api/catalogos/deleteLabelOrValue?mode=physical&type=1&id=${oData.LABELID}`,
+                  method: "GET",
                   contentType: "application/json",
-                  data: JSON.stringify({ _id: oData._id }),
                   success: function () {
                     MessageToast.show("Registro eliminado");
 
@@ -298,7 +291,7 @@ sap.ui.define(
 
                     // Encontrar y eliminar el registro
                     var index = aData.findIndex(
-                      (item) => item._id === oData._id
+                      (item) => item.LABELID === oData.LABELID
                     );
                     if (index !== -1) {
                       aData.splice(index, 1);
@@ -338,7 +331,7 @@ sap.ui.define(
 
           var oContext = this._oSelectedItem.getBindingContext();
           var oData = oContext.getObject();
-          var sAction = bActivate ? "activate" : "delete";
+          var sAction = bActivate;
           var sStatusMessage = bActivate ? "activado" : "desactivado";
 
           // Obtener el modelo y los datos actuales
@@ -347,11 +340,12 @@ sap.ui.define(
 
           $.ajax({
             url:
-              "http://localhost:4004/api/sec/logicalLabel?status=" +
+              "http://localhost:3033/api/catalogos/logicalLabelValue?status=" +
               sAction +
-              "&&labelID=" +
-              oData.LABELID,
-            method: "POST",
+              "&id=" +
+              oData.LABELID+
+              "&type=1",
+            method: "GET",
             contentType: "application/json",
             success: function () {
               // Actualizar el estado localmente
@@ -408,7 +402,7 @@ sap.ui.define(
 
           var sLabelID = oSelectedData.LABELID;
           var sUrl =
-            "http://localhost:4004/api/sec/valuesCRUD?procedure=get&labelID=" +
+            "http://localhost:3033/api/catalogos/getAllLabels?type=value&labelID=" +
             encodeURIComponent(sLabelID);
           var that = this;
 

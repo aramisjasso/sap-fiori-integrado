@@ -158,26 +158,34 @@ sap.ui.define([
                 ALIAS: oFormData.ALIAS || "",
                 SEQUENCE: 30,
                 IMAGE: oFormData.IMAGE || "",
-                VALUESAPID: "",
                 DESCRIPTION: oFormData.DESCRIPTION || "",
-                ROUTE: "",
                 // Estructura anidada para DETAIL_ROW
-                "DETAIL_ROW": {
-                    "ACTIVED": true,
-                    "DELETED": false
-                },
-                "DETAIL_ROW_REG": [
-
-                ]
-            };
-
+                DETAIL_ROW: {
+                    ACTIVED: true,
+                    DELETED: false,
+                    DETAIL_ROW_REG: [
+                        {
+                        CURRENT: true,
+                        REGDATE: new Date().toISOString(),
+                        REGTIME: new Date().toISOString(),
+                        REGUSER: "MIGUEL",
+                        }
+                    ],
+                    },
+                
+            }
+            var payload = {
+            value: oParams,
+          };
+            console.log("Data:", JSON.stringify(oParams));
             // Configurar llamada AJAX con GET
             oView.setBusy(true);
 
             $.ajax({
-                url: `http://localhost:4004/api/sec/valuesCRUD?procedure=post`,
-                data: oParams,
-                method: "GET",
+                url: `http://localhost:3033/api/catalogos/createLabel?type=2`,
+                data: JSON.stringify(payload),
+                method: "POST",
+                contentType: "application/json",
                 success: function (response) {
                     oView.setBusy(false);
                     MessageToast.show("Valor guardado correctamente");
