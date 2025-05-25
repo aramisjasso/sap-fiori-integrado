@@ -159,7 +159,7 @@
                                          type="XML"/>
                         </VBox>
                     </FlexBox>
-                                            <!-- Strategy Results -->
+                <!-- Strategy Results -->
                 <VBox width="auto">
                     <core:Fragment fragmentName="com.invertions.sapfiorimodinv.view.investments.fragments.StrategyResultPanel" 
                                  type="XML"/>

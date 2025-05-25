@@ -24,7 +24,7 @@ sap.ui.define([
       DEFAULT_SHORT_SMA: 50,
       DEFAULT_LONG_SMA: 200,
       //API_ENDPOINT: "http://localhost:3033/api/inv/simulation?strategy=macrossover",
-      ENDPOINT_TEST: "http://localhost:3033/api/inv/getSimulation?id=AAPL_2025-05-21_21-32-49-678Z"
+      ENDPOINT_TEST: "http://localhost:3033/api/inv/getSimulation?id=MSFT_2025-05-25_05-11-07-449Z"
     },
 
     onInit: function() {
@@ -264,19 +264,18 @@ sap.ui.define([
     },
 
     _handleAnalysisResponse: function(data, oStrategyModel, oResultModel) {
-        console.log("Datos para la gráfica:", data.chart_data);
-         console.log("Señales:", data.signals);
+        console.log("Datos para la gráfica:", data.CHART_DATA);
+         console.log("Señales:", data.SIGNALS);
         
         // Actualizar modelo de resultados
         oResultModel.setData({
             hasResults: true,
             chart_data: this._prepareTableData(
-                data.chart_data || [],
-                data.signals || [],
-                data.transactions || []
+                data.CHART_DATA || [],
+                data.SIGNALS || []
             ),
-            signals: data.signals || [],
-            result: data.result || 0,
+            signals: data.SIGNALS || [],
+            result: data.SUMMARY.REAL_PROFIT || 0,
             simulationName: "Moving Average Crossover",
             symbol: oStrategyModel.getProperty("/symbol"),
             startDate: oStrategyModel.getProperty("/startDate"),
@@ -293,53 +292,53 @@ sap.ui.define([
         MessageToast.show(`Se añadieron $${totalGain} a tu balance.`);
     },
 
-    _prepareTableData: function(aData, aSignals, aTransactions) {
-        if (!Array.isArray(aData)) return [];
-        
-        const oDateFormat = DateFormat.getDateInstance({ pattern: "dd/MM/yyyy" });
-        let currentShares = 0; // Rastrea las acciones en tiempo real
-        
-        return aData.map(oItem => {
-            const oDate = oItem.date instanceof Date ? oItem.date : new Date(oItem.date);
-            const sDateKey = oDate.toISOString(); // Para comparar fechas
-            
-            // Buscar señal correspondiente a esta fecha
-            const oSignal = aSignals.find(s => 
-                new Date(s.date).toISOString() === sDateKey
-            );
-            
-            // Buscar transacción correspondiente
-            const oTransaction = aTransactions.find(t => 
-                new Date(t.date).toISOString() === sDateKey
-            );
+  _prepareTableData: function(aData, aSignals) {
+      if (!Array.isArray(aData)) return [];
+      
+      const oDateFormat = DateFormat.getDateInstance({ pattern: "dd/MM/yyyy" });
+      let currentShares = 0; // Rastrea las acciones en tiempo real
+      
+      return aData.map(oItem => {
+          // Ajuste para el nuevo formato de fecha (ya viene como string "YYYY-MM-DD")
+          const oDate = typeof oItem.DATE === 'string' 
+              ? new Date(oItem.DATE) 
+              : (oItem.DATE instanceof Date ? oItem.DATE : new Date(oItem.date));
+          
+          const sDateKey = oDate.toISOString().split('T')[0]; // Para comparar fechas en formato YYYY-MM-DD
+          
+          // Buscar señal correspondiente a esta fecha (ahora SIGNALS viene en el formato nuevo)
+          const oSignal = aSignals.find(s => s.DATE === sDateKey);
 
-            // Actualizar el acumulado de acciones
-            if (oTransaction) {
-                currentShares = oTransaction.type === 'buy' 
-                    ? oTransaction.shares // Compra: establece nuevas acciones
-                    : 0; // Venta: liquidamos todo (ajusta si hay ventas parciales)
-            }
-            
-            return {
-                DATE: oDateFormat.format(oDate),
-                DATE_GRAPH: oDate,
-                OPEN: oItem.open,
-                HIGH: oItem.high,
-                LOW: oItem.low,
-                CLOSE: oItem.close,
-                VOLUME: oItem.volume,
-                SHORT_MA: oItem.short_ma,
-                LONG_MA: oItem.long_ma,
-                INDICATORS: `MA(${oItem.short_ma?.toFixed(2)}/${oItem.long_ma?.toFixed(2)})`,
-                SIGNALS: oSignal?.type?.toUpperCase() || "-", // "BUY", "SELL" o vacío
-                RULES: oSignal?.reasoning || "-",
-                SHARES: currentShares.toFixed(4),  // Muestra el acumulado diario
-                BUY_SIGNAL: oSignal?.type === 'buy' ? oItem.close : null,
-                SELL_SIGNAL: oSignal?.type === 'sell' ? oItem.close : null,
-                
-            };
-        });
-    },
+          // Obtener valores de los indicadores del nuevo formato
+          const shortMA = oItem.INDICATORS?.find(i => i.INDICATOR === 'short_ma')?.VALUE;
+          const longMA = oItem.INDICATORS?.find(i => i.INDICATOR === 'long_ma')?.VALUE;
+
+          // Actualizar el acumulado de acciones (usando el nuevo formato de señales)
+          if (oSignal) {
+              currentShares = oSignal.SHARES || 0;
+          }
+          
+          return {
+              DATE: oDateFormat.format(oDate),
+              DATE_GRAPH: oDate,
+              OPEN: oItem.OPEN,
+              HIGH: oItem.HIGH,
+              LOW: oItem.LOW,
+              CLOSE: oItem.CLOSE,
+              VOLUME: oItem.VOLUME,
+              SHORT_MA: shortMA,
+              LONG_MA: longMA,
+              INDICATORS: shortMA && longMA 
+                  ? `MA(${shortMA.toFixed(2)}/${longMA.toFixed(2)})` 
+                  : "-",
+              SIGNALS: oSignal?.TYPE?.toUpperCase() || "-", // "BUY", "SELL" o vacío
+              RULES: oSignal?.REASONING || "-",
+              SHARES: currentShares.toFixed(4),  // Muestra el acumulado diario
+              BUY_SIGNAL: oSignal?.TYPE?.toLowerCase() === 'buy' ? oItem.CLOSE : null,
+              SELL_SIGNAL: oSignal?.TYPE?.toLowerCase() === 'sell' ? oItem.CLOSE : null,
+          };
+      });
+  },
 
     onRefreshChart: function() {
       var oSymbolModel = this.getView().getModel("symbolModel");
