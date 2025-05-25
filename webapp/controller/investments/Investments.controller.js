@@ -23,8 +23,8 @@ sap.ui.define([
       DEFAULT_STOCK: 1,
       DEFAULT_SHORT_SMA: 50,
       DEFAULT_LONG_SMA: 200,
-      //API_ENDPOINT: "http://localhost:3033/api/inv/simulation?strategy=macrossover",
-      ENDPOINT_TEST: "http://localhost:3033/api/inv/getSimulation?id=MSFT_2025-05-25_05-11-07-449Z"
+      URL_SIMULATION: "http://localhost:3033/api/inv/simulation?strategy=macrossover",
+      URL_GETSIMULATION: "http://localhost:3033/api/inv/getSimulation?id=MSFT_2025-05-25_05-11-07-449Z"
     },
 
     onInit: function() {
@@ -76,37 +76,21 @@ sap.ui.define([
 
       }), "strategyResultModel");
 
-          // Modelo historial de inversiones
-    this.getView().setModel(new JSONModel({strategies: [{
-                date: new Date(2024, 4, 15),  // Mayo 15, 2024
-                strategyName: "Moving Average Crossover 1",
-                symbol: "AAPL",
-                result: 2500.50,
-                status: "Completado"
-            },
-            {
-                date: new Date(2024, 4, 16),  // Mayo 16, 2024
-                strategyName: "Moving Average Crossover 2",
-                symbol: "TSLA",
-                result: -1200.30,
-                status: "Completado"
-            },
-            {
-                date: new Date(2024, 4, 17),  // Mayo 17, 2024
-                strategyName: "Moving Average Crossover 3",
-                symbol: "MSFT",
-                result: 3400.80,
-                status: "En Proceso"
 
-            }],
-            filteredCount: 0,    
-            selectedCount: 0,    
-            filters: {            
-                dateRange: null,
-                investmentRange: [0, 10000],
-                profitRange: [-100, 100]
-            }
-          }), "historyModel");
+      // Inicializar modelo con estructura vacía
+      const oHistoryModel = new JSONModel({
+          strategies: [],       // Aquí irán las estrategias dinámicas
+          filteredCount: 0,    
+          selectedCount: 0,    
+          filters: {
+              dateRange: null,
+              investmentRange: [0, 10000],
+              profitRange: [-100, 100]
+          }
+      });
+      
+      this.getView().setModel(oHistoryModel, "historyModel");
+      this._oSelectedStrategy = null;
     },
 
     // Carga textos i18n
@@ -218,7 +202,7 @@ sap.ui.define([
       if (!this._validateAnalysisInputs(oStrategyModel, sSymbol)) return;
 
       // Configurar y llamar API
-      this._callAnalysisAPI(sSymbol, oStrategyModel, oResultModel);
+      this._callAnalysisAPISimulation(sSymbol, oStrategyModel, oResultModel);
     },
 
     _validateAnalysisInputs: function(oStrategyModel, sSymbol) {
@@ -233,30 +217,22 @@ sap.ui.define([
       return true;
     },
 
-    _callAnalysisAPI: function(sSymbol, oStrategyModel, oResultModel) {
-      /*var oRequestBody = {
+    _callAnalysisAPISimulation: function(sSymbol, oStrategyModel, oResultModel) {
+      var oRequestBody = {
         symbol: sSymbol,
         startDate: this._formatDate(oStrategyModel.getProperty("/startDate")),
         endDate: this._formatDate(oStrategyModel.getProperty("/endDate")),
         amount: this._CONSTANTS.DEFAULT_BALANCE,
         userId: "ARAMIS",
         specs: `SHORT:${oStrategyModel.getProperty("/shortSMA")}&LONG:${oStrategyModel.getProperty("/longSMA")}`
-      };*/
-      // TEST
-      var oRequestBody = {
-        idUser: "ARAMIS"
       };
-      //fetch(this._CONSTANTS.API_ENDPOINT, {
-      //TEST
-      fetch(this._CONSTANTS.ENDPOINT_TEST, {
+      fetch(this._CONSTANTS.API_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(oRequestBody)
       })
       .then(response => response.ok ? response.json() : Promise.reject(response))
-      //.then(data => this._handleAnalysisResponse(data.value, oStrategyModel, oResultModel))
-      // TEST
-      .then(data => this._handleAnalysisResponse(data.value[0], oStrategyModel, oResultModel))
+      .then(data => this._handleAnalysisResponse(data.value, oStrategyModel, oResultModel))
       .catch(error => {
         console.error("Error:", error);
         MessageBox.error("Error al obtener datos de simulación");
@@ -264,8 +240,8 @@ sap.ui.define([
     },
 
     _handleAnalysisResponse: function(data, oStrategyModel, oResultModel) {
-        console.log("Datos para la gráfica:", data.CHART_DATA);
-         console.log("Señales:", data.SIGNALS);
+        //console.log("Datos para la gráfica:", data.CHART_DATA);
+        //console.log("Señales:", data.SIGNALS);
         
         // Actualizar modelo de resultados
         oResultModel.setData({
@@ -383,46 +359,174 @@ sap.ui.define([
         return `$${parseFloat(value).toFixed(2)}`;
     },
 
-
-    //Historial de inversiones
+    // Historial de inversiones
     onHistoryPress: function(oEvent) {
-      if (!this._oHistoryPopover) {
-          this._oHistoryPopover = sap.ui.xmlfragment(
-              "com.invertions.sapfiorimodinv.view.investments.fragments.InvestmentHistoryPanel",
-              this
-          );
-          this.getView().addDependent(this._oHistoryPopover);
-      }
-      
-      if (this._oHistoryPopover.isOpen()) {
-          this._oHistoryPopover.close();
-          return;
-      }
-      
-      // Abrir la ventana
-      this._oHistoryPopover.openBy(oEvent.getSource());
-  },
+        // 1. Crear popover como lo tenías originalmente
+        if (!this._oHistoryPopover) {
+            this._oHistoryPopover = sap.ui.xmlfragment(
+                "com.invertions.sapfiorimodinv.view.investments.fragments.InvestmentHistoryPanel",
+                this
+            );
+            this.getView().addDependent(this._oHistoryPopover);
+            
+            // SOLO ESTO ES NUEVO: Guardar referencia a la tabla
+            this._oHistoryTable = this._oHistoryPopover.getContent()[0].getContent()[3]; 
+            // Ajusta el índice según la posición real de tu tabla en el fragmento
+        }
+        
+        // 2. Cerrar si ya está abierto (igual que tu versión)
+        if (this._oHistoryPopover.isOpen()) {
+            this._oHistoryPopover.close();
+            return;
+        }
+        
+        // 3. Abrir popover (igual que tu versión)
+        this._oHistoryPopover.openBy(oEvent.getSource());
+        
+        // 4. Cargar datos (esto lo moví después de abrir el popover)
+        this._loadHistoryData().catch(error => {
+            console.error("Error cargando datos:", error);
+            sap.m.MessageBox.error("Error al cargar historial");
+        });
+    },
 
+    // Función separada para cargar datos (mejor organizado)
+    _loadHistoryData: async function() {
+        sap.ui.core.BusyIndicator.show(0);
+        
+        try {
+            const USERID = "ARAMIS";
+            const response = await fetch("http://localhost:3033/api/inv/getSimulation", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ USERID })
+            });
+            
+            if (!response.ok) throw new Error("Error en respuesta");
+            
+            const data = await response.json();
+            
+            const transformedData = data.value.map(simulation => ({
+                date: new Date(simulation.STARTDATE),
+                strategyName: simulation.SIMULATIONNAME,
+                symbol: simulation.SYMBOL,
+                result: simulation.SUMMARY?.REAL_PROFIT || 0,
+                status: "Completado",
+                details: simulation
+            }));
+            
+            this.getView().setModel(new JSONModel({
+                strategies: transformedData,
+                filteredCount: transformedData.length,    
+                selectedCount: 0,    
+                filters: {            
+                    dateRange: null,
+                    investmentRange: [0, 10000],
+                    profitRange: [-100, 100]
+                }
+            }), "historyModel");
+            
+        } finally {
+            sap.ui.core.BusyIndicator.hide();
+        }
+    },
 
-    onLoadStrategy: function(oEvent) {
-        var oItem = oEvent.getSource().getBindingContext("historyModel").getObject();
+   onSelectionChange: function(oEvent) {
+        // Guarda la estrategia seleccionada directamente
+        this._oSelectedStrategy = oEvent.getParameter("listItem")?.getBindingContext("historyModel")?.getObject();
+    },
+
+    onLoadStrategy: async function() {
+        try {
+            if (!this._oSelectedStrategy) {
+                sap.m.MessageToast.show("Selecciona una estrategia primero");
+                return;
+            }
+
+            sap.ui.core.BusyIndicator.show(0);
+            
+            // 1. Obtener datos
+            const sSimulationId = this._oSelectedStrategy.details.SIMULATIONID;
+            const simulationDetail = await this._loadSimulationDetails(sSimulationId);
+            
+            // 2. Actualizar modelos
+            const oStrategyModel = this.getView().getModel("strategyAnalysisModel");
+            const oResultModel = this.getView().getModel("strategyResultModel");
+            
+            oStrategyModel.setProperty("/symbol", simulationDetail.SYMBOL);
+            
+            // Extraer valores de SPECS
+            simulationDetail.SPECS?.forEach(spec => {
+                if (spec.INDICATOR === "SHORT_MA") oStrategyModel.setProperty("/shortSMA", spec.VALUE);
+                if (spec.INDICATOR === "LONG_MA") oStrategyModel.setProperty("/longSMA", spec.VALUE);
+            });
+            
+            // 3. Preparar datos para resultados
+            oResultModel.setData({
+                hasResults: true,
+                chart_data: this._prepareTableData(simulationDetail.CHART_DATA || [], simulationDetail.SIGNALS || []),
+                signals: simulationDetail.SIGNALS || [],
+                simulationName: simulationDetail.SIMULATIONNAME
+            });
+            
+            // 4. Cerrar y feedback
+            this._oHistoryPopover.close();
+            sap.m.MessageToast.show(`Estrategia ${simulationDetail.SIMULATIONNAME} cargada`);
+            
+        } catch (error) {
+            console.error("Error:", error);
+            sap.m.MessageBox.error("Error al cargar la estrategia");
+        } finally {
+            sap.ui.core.BusyIndicator.hide();
+        }
+    },
+
+    // Función auxiliar para cargar detalles
+    _loadSimulationDetails: async function(sSimulationId) {
+        const response = await fetch(`http://localhost:3033/api/inv/getSimulation?id=${sSimulationId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ USERID: "ARAMIS" })
+        });
         
-        // Cargar la estrategia seleccionada
-        var oStrategyModel = this.getView().getModel("strategyAnalysisModel");
-        var oResultModel = this.getView().getModel("strategyResultModel");
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
-        // Restaurar configuración
-        oStrategyModel.setProperty("/symbol", oItem.symbol);
-        oStrategyModel.setProperty("/shortSMA", oItem.shortSMA);
-        oStrategyModel.setProperty("/longSMA", oItem.longSMA);
+        const data = await response.json();
+        return data.value?.[0] || {};
+    },
+
+    // Función para actualizar modelos
+    _updateModelsWithSimulationData: function({ simulationDetail, oStrategyModel, oResultModel, oItem }) {
+        // Datos para strategyAnalysisModel
+        oStrategyModel.setProperty("/symbol", simulationDetail.SYMBOL);
         
-        // Restaurar datos
-        oResultModel.setProperty("/chart_data", oItem.chartData);
-        oResultModel.setProperty("/signals", oItem.signals);
+        // Extracción dinámica de SPECS
+        const specsMap = {};
+        (simulationDetail.SPECS || []).forEach(spec => {
+            specsMap[spec.INDICATOR] = spec.VALUE;
+        });
         
-        // Cerrar diálogo y mostrar mensaje
-        this._oHistoryPopover.close();
-        MessageToast.show("Estrategia cargada correctamente");
+        oStrategyModel.setProperty("/shortSMA", specsMap.SHORT_MA);
+        oStrategyModel.setProperty("/longSMA", specsMap.LONG_MA);
+        
+        // Datos para strategyResultModel
+        oResultModel.setData({
+            hasResults: true,
+            chart_data: this._prepareTableData(
+                simulationDetail.CHART_DATA || [],
+                simulationDetail.SIGNALS || []
+            ),
+            signals: simulationDetail.SIGNALS || [],
+            simulationName: simulationDetail.SIMULATIONNAME,
+            startDate: new Date(simulationDetail.STARTDATE), // Convertir a Date
+            endDate: new Date(simulationDetail.ENDDATE),     // Convertir a Date
+            originalData: simulationDetail // Guardar copia completa por si se necesita
+        });
+        
+        // Actualizar historial si es necesario
+        if (oItem) {
+            oItem.lastLoaded = new Date().toISOString(); // Marcar última carga
+        }
     },
 
     //Cerrar la ventana
