@@ -30,7 +30,7 @@
         </m:Toolbar>
 
         <tl:Table id="IdTable1UsersManageTable"
-            rows="{/value/0/users}"
+            rows="{/value}"
             selectionMode="Single"
             alternateRowColors="true"
             selectionBehavior="RowOnly"
@@ -107,7 +107,7 @@
             <tl:Column id="IdColumnStatus" sortProperty="STATUS" width="12rem" autoResizable="true" resizable="true">
                 <m:Label id="IdLabelStatus" text="STATUS" />
                 <tl:template>
-                    <m:Text id="IdTextStatus" text="{STATUS}"/>
+                    <m:Text id="IdTextStatus" text="{path: 'DETAIL_ROW', formatter: '.formatStatus'}"/>
                 </tl:template>
             </tl:Column>
 

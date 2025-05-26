@@ -10,6 +10,9 @@ sap.ui.define([
     "sap/ui/core/Fragment",
     "sap/m/MessageToast",
     "sap/m/MessageBox"
+// @ts-ignore
+// @ts-ignore
+// @ts-ignore
 ], function(BaseController,JSONModel,Log,Fragment,MessageToast,MessageBox){
     "use strict";
 
@@ -27,34 +30,34 @@ sap.ui.define([
             this.loadUsers();
         },
 
+
+        //===================================================
+        //=============== Cargar datos Users ======================
+        //===================================================
+        //llenado de la tabla de usuarios
         /**
          * Funcion para cargar la lista de usuarios.
          */
         loadUsers: function () {
             var oTable = this.byId("IdTable1UsersManageTable");
-            var oModel = new JSONModel();
+            var oModel = new sap.ui.model.json.JSONModel();
+            // @ts-ignore
+            // @ts-ignore
+            // @ts-ignore
             var that = this;
 
-            // En nuestro proyecto nosotros creamos un archivo llamado en.json para cargar la url de las apis
-            // Cambiar esto segun su backend
-            fetch("env.json")
-                .then(res => res.json())
-                .then(env => fetch(env.API_USERS_URL_BASE + "getallusers"))
-                .then(res => res.json())
-                .then(data => {
-                    data.value.forEach(user => {
-                        user.ROLES = that.formatRoles(user.ROLES);
-                    });
-                    oModel.setData(data);
-                    oTable.setModel(oModel);
-                })
-                .catch(err => {
-                    if(err.message === ("Cannot read properties of undefined (reading 'setModel')")){
-                        return;
-                    }else{
-                        MessageToast.show("Error al cargar usuarios: " + err.message);
-                    }      
-                });        
+            fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=get&type=all", {
+                method: "POST"
+            })
+            .then(res => res.json())
+            .then(data => {
+                oModel.setData(data); // data = { value: [...] }
+                oTable.setModel(oModel);
+            })
+            .catch(err => {
+                // @ts-ignore
+                sap.m.MessageToast.show("Error al cargar usuarios: " + err.message);
+            });
         },
 
         loadCompanies: function() {
@@ -94,9 +97,11 @@ sap.ui.define([
          * Ejemplo: Usuario auxiliar-Investor-etc...
          */
         formatRoles: function (rolesArray) {
-            return Array.isArray(rolesArray) 
-                ? rolesArray.map(role => role.ROLENAME).join("-") 
-                : "";
+            if (!Array.isArray(rolesArray) || rolesArray.length === 0) return "";
+            // Muestra ROLEID y si hay error, lo indica
+            return rolesArray.map(function(role) {
+                return role.ROLEID + (role.error ? " (" + role.error + ")" : "");
+            }).join(", ");
         },
 
         /**
@@ -237,9 +242,31 @@ sap.ui.define([
             }
         },
 
+        // ============= ELIMINAR USER (DELETE FÍSICO) =============
+        // Elimina el usuario de la base de datos de forma permanente
         deleteUser: function(UserId){
-            // Aqui agregar la lógica para eliminar de la BD
+            var that = this;
+            fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=delete&type=hard&userid=" + encodeURIComponent(UserId), {
+                method: "POST"
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && !data.error) {
+                    // @ts-ignore
+                    sap.m.MessageToast.show("Usuario eliminado correctamente");
+                    that.loadUsers();
+                    that.getView().getModel("viewModel").setProperty("/buttonsEnabled", false);
+                } else {
+                    // @ts-ignore
+                    sap.m.MessageBox.error("Error al eliminar usuario: " + (data.message || "No se pudo eliminar el usuario."));
+                }
+            })
+            .catch(err => {
+                // @ts-ignore
+                sap.m.MessageBox.error("Error de red al eliminar usuario: " + err.message);
+            });
         },
+        // ============= FIN ELIMINAR USER (DELETE FÍSICO) =============
 
         // ===================================================
         // ============ Desactivar el usuario ================
@@ -265,9 +292,31 @@ sap.ui.define([
             }
         },
 
+        // ============= DESACTIVAR USER (DELETE LÓGICO) =============
+        // Marca el usuario como desactivado/eliminado lógicamente (no se borra de la BD)
         desactivateUser: function(UserId){
-            // Aqui agregar la lógica para desactivar al usuario
+            var that = this;
+            fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=delete&type=logic&userid=" + encodeURIComponent(UserId), {
+                method: "POST"
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && !data.error) {
+                    // @ts-ignore
+                    sap.m.MessageToast.show("Usuario desactivado correctamente");
+                    that.loadUsers();
+                    that.getView().getModel("viewModel").setProperty("/buttonsEnabled", false);
+                } else {
+                    // @ts-ignore
+                    sap.m.MessageBox.error("Error al desactivar usuario: " + (data.message || "No se pudo desactivar el usuario."));
+                }
+            })
+            .catch(err => {
+                // @ts-ignore
+                sap.m.MessageBox.error("Error de red al desactivar usuario: " + err.message);
+            });
         },
+        // ============= FIN DESACTIVAR USER (DELETE LÓGICO) =============
 
 
         // ===================================================
@@ -294,9 +343,30 @@ sap.ui.define([
             }
         },
 
+        // ============= ACTIVAR USER =============
         activateUser: function(UserId){
-            // Aqui agregar la lógica para activar al usuario
+            var that = this;
+            fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=activate&userid=" + encodeURIComponent(UserId), {
+                method: "POST"
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && !data.error) {
+                    // @ts-ignore
+                    sap.m.MessageToast.show("Usuario activado correctamente");
+                    that.loadUsers();
+                    that.getView().getModel("viewModel").setProperty("/buttonsEnabled", false);
+                } else {
+                    // @ts-ignore
+                    sap.m.MessageBox.error("Error al activar usuario: " + (data.message || "No se pudo activar el usuario."));
+                }
+            })
+            .catch(err => {
+                // @ts-ignore
+                sap.m.MessageBox.error("Error de red al activar usuario: " + err.message);
+            });
         },
+        // ============= FIN ACTIVAR USER =============
 
 
         //===================================================
@@ -345,8 +415,14 @@ sap.ui.define([
 
         isValidPhoneNumber: function(phone) {
             return /^\d{10}$/.test(phone); // Ejemplo: 10 dígitos numéricos
-        }
+        },
 
+        formatStatus: function(detailRow) {
+            if (!detailRow) return "";
+            if (detailRow.DELETED) return "Eliminado";
+            if (detailRow.ACTIVED) return "Activo";
+            return "Desactivado";
+        }
 
     });
 });
