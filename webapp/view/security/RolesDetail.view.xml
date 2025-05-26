@@ -12,9 +12,6 @@
       <m:Toolbar>
         <m:Title text="Detalles de rol: {selectedRole>/ROLENAME}" level="H2" />
         <m:ToolbarSpacer />
-        <m:Button text="Editar" type="Emphasized" icon="sap-icon://edit" press=".onUpdateRole" />
-        <m:Button text="Desactivar" icon="sap-icon://delete" press=".onDesactivateRole" type="Attention" />
-        <m:Button text="Eliminar" icon="sap-icon://delete" type="Reject" press=".onDeleteRole" />
       </m:Toolbar>
 
       <!-- 🔹 Información del rol -->
@@ -25,10 +22,24 @@
 
       <!-- 🔹 Procesos del rol -->
       <m:Panel
-        id="processesPanel"
-        headerText="Procesos y Privilegios"
-        expandable="false"
-        class="sapUiMediumMarginTop">
+       id="processesPanel"
+  expandable="false"
+  class="sapUiMediumMarginTop"
+  headerToolbar="{
+    path: '',
+    templateShareable: false
+  }">
+
+  <m:toolbar>
+    <m:Title text="Procesos y Privilegios" />
+    <m:ToolbarSpacer />
+    <m:Button
+      icon="sap-icon://folder"
+      text="Catalogos"
+      tooltip="Catálogos"
+      type="Emphasized"
+      press=".onCatalogsPress" />
+  </m:toolbar>
 
         <tl:Table
           id="processesTable"
@@ -83,9 +94,23 @@
 
       <!-- 🔹 Usuarios del rol -->
       <m:Panel
-        headerText="Usuarios con este Rol"
-        class="sapUiMediumMarginTop"
-        expandable="false">
+        expandable="false"
+  class="sapUiMediumMarginTop"
+  headerToolbar="{
+    path: '',
+    templateShareable: false
+  }">
+
+  <m:toolbar>
+    <m:Title text="Usuarios con este Rol" />
+    <m:ToolbarSpacer />
+    <m:Button
+      icon="sap-icon://employee-approvals"
+      text="Usuarios"
+      tooltip="Usuarios"
+      type="Emphasized"
+      press=".onUsersPress" />
+  </m:toolbar>
 
         <tl:Table
           id="usersTable"
