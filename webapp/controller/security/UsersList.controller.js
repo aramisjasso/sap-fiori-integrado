@@ -27,34 +27,31 @@ sap.ui.define([
             this.loadUsers();
         },
 
+
+        //===================================================
+        //=============== Cargar datos Users ======================
+        //===================================================
+        //llenado de la tabla de usuarios
         /**
          * Funcion para cargar la lista de usuarios.
          */
         loadUsers: function () {
             var oTable = this.byId("IdTable1UsersManageTable");
-            var oModel = new JSONModel();
+            var oModel = new sap.ui.model.json.JSONModel();
             var that = this;
 
-            // En nuestro proyecto nosotros creamos un archivo llamado en.json para cargar la url de las apis
-            // Cambiar esto segun su backend
-            fetch("env.json")
-                .then(res => res.json())
-                .then(env => fetch(env.API_USERS_URL_BASE + "getallusers"))
-                .then(res => res.json())
-                .then(data => {
-                    data.value.forEach(user => {
-                        user.ROLES = that.formatRoles(user.ROLES);
-                    });
-                    oModel.setData(data);
-                    oTable.setModel(oModel);
-                })
-                .catch(err => {
-                    if(err.message === ("Cannot read properties of undefined (reading 'setModel')")){
-                        return;
-                    }else{
-                        MessageToast.show("Error al cargar usuarios: " + err.message);
-                    }      
-                });        
+            fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=get&type=all", {
+                method: "POST"
+            })
+            .then(res => res.json())
+            .then(data => {
+                oModel.setData(data); // data = { value: [...] }
+                oTable.setModel(oModel);
+            })
+            .catch(err => {
+                // @ts-ignore
+                sap.m.MessageToast.show("Error al cargar usuarios: " + err.message);
+            });
         },
 
         loadCompanies: function() {
@@ -94,9 +91,11 @@ sap.ui.define([
          * Ejemplo: Usuario auxiliar-Investor-etc...
          */
         formatRoles: function (rolesArray) {
-            return Array.isArray(rolesArray) 
-                ? rolesArray.map(role => role.ROLENAME).join("-") 
-                : "";
+            if (!Array.isArray(rolesArray) || rolesArray.length === 0) return "";
+            // Muestra ROLEID y si hay error, lo indica
+            return rolesArray.map(function(role) {
+                return role.ROLEID + (role.error ? " (" + role.error + ")" : "");
+            }).join(", ");
         },
 
         /**
@@ -345,8 +344,14 @@ sap.ui.define([
 
         isValidPhoneNumber: function(phone) {
             return /^\d{10}$/.test(phone); // Ejemplo: 10 dígitos numéricos
-        }
+        },
 
+        formatStatus: function(detailRow) {
+            if (!detailRow) return "";
+            if (detailRow.DELETED) return "Eliminado";
+            if (detailRow.ACTIVED) return "Activo";
+            return "Desactivado";
+        }
 
     });
 });
