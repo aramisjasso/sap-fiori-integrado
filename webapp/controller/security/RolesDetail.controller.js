@@ -54,7 +54,18 @@ sap.ui.define([
       }
 
       this.getView().setModel(new JSONModel(oRole), "selectedRole");
-    }
+    },
+    
+onCatalogsPress: function () {
+  const oRouter = sap.ui.core.UIComponent.getRouterFor(this);
+  oRouter.navTo("RouteCatalogs");
+},
+
+onUsersPress: function () {
+  const oRouter = sap.ui.core.UIComponent.getRouterFor(this);
+  oRouter.navTo("RouteUsersList");
+}
+
 
   });
 });
