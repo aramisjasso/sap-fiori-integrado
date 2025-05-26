@@ -187,7 +187,7 @@ sap.ui.define(
 
           var oContext = this._oSelectedItem.getBindingContext();
           var oData = oContext.getObject();
-
+          console.log(oData);
           // Crear modelo para edición
           var oEditModel = new JSONModel($.extend(true, {}, oData));
           this.getView().setModel(oEditModel, "editModel");
@@ -218,15 +218,28 @@ sap.ui.define(
           // Obtener el modelo de la tabla
           var oTableModel = this.getView().getModel();
           var aData = oTableModel.getProperty("/value") || [];
-
+          var payload = {
+            label: {
+              "COMPANYID": oEditedData.COMPANYID,
+              "CEDIID": oEditedData.CEDIID,
+              "LABELID": oEditedData.LABELID,
+              "LABEL": oEditedData.LABEL,
+              "INDEX": oEditedData.INDEX,
+              "COLLECTION": oEditedData.COLLECTION,
+              "SECTION": oEditedData.SECTION,
+              "SEQUENCE": oEditedData.SEQUENCE,
+              "IMAGE": oEditedData.IMAGE,
+              "DESCRIPTION": oEditedData.DESCRIPTION,
+              "ACTIVED": oEditedData.DETAIL_ROW.ACTIVED,
+              "REGUSER": "Miguel"
+            }
+          };
           // Llamada a la API para actualizar
           $.ajax({
-            url: "http://localhost:4004/api/sec/updateLabel",
+            url: "http://localhost:3033/api/catalogos/updateLabel?type=1",
             method: "POST",
             contentType: "application/json",
-            data: JSON.stringify({
-              values: oEditedData,
-            }),
+            data: JSON.stringify(payload),
             // @ts-ignore
             success: function (response) {
               MessageToast.show("Registro actualizado correctamente");
@@ -385,7 +398,7 @@ sap.ui.define(
           var oModel = this.getView().getModel();
 
           $.ajax({
-            url: "http://localhost:4004/api/sec/getall",
+            url: "http://localhost:3033/api/catalogos/getAllLabels?type=catalog",
             method: "GET",
             success: function (data) {
               oModel.setData({ value: data.value });
