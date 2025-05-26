@@ -223,20 +223,16 @@ onDesactivateRole: function () {
   const oTable = this.byId("rolesTable");
   const iIndex = oTable.getSelectedIndex();
 
-
   if (iIndex === -1) {
     MessageToast.show("Selecciona un rol para desactivar.");
     return;
   }
 
-
   const oSelectedRole = oTable.getContextByIndex(iIndex).getObject();
-
 
   // Setear el modelo seleccionado
   const oModel = new JSONModel(oSelectedRole);
   this.getView().setModel(oModel, "selectedRole");
-
 
   // Llamar al handler
   this._handleRoleAction({
@@ -248,12 +244,41 @@ onDesactivateRole: function () {
     confirmAction: MessageBox.Action.YES,
     method: "POST",
     url: "http://localhost:3033/api/sec/usersroles/rolesCRUD?procedure=delete&type=logic&roleid=",
-    successMessage: "Rol desactivado correctamente."
+    successMessage: "Rol desactivado correctamente.",
+    updateOnly: true 
   });
 },
 
+onActivateRole: function () {
+  console.log("Activar rol");
+  const oTable = this.byId("rolesTable");
+  const iIndex = oTable.getSelectedIndex();
 
+  if (iIndex === -1) {
+    MessageToast.show("Selecciona un rol para activar.");
+    return;
+  }
 
+  const oSelectedRole = oTable.getContextByIndex(iIndex).getObject();
+
+  // Setear el modelo seleccionado
+  const oModel = new JSONModel(oSelectedRole);
+  this.getView().setModel(oModel, "selectedRole");
+
+  // Llamar al handler
+  this._handleRoleAction({
+    dialogType: "confirm",
+    message: "¿Estás seguro de que deseas activar el rol \"{ROLENAME}\"?",
+    title: "Confirmar activación",
+    actions: [MessageBox.Action.YES, MessageBox.Action.NO],
+    emphasizedAction: MessageBox.Action.YES,
+    confirmAction: MessageBox.Action.YES,
+    method: "POST",
+    url: "http://localhost:3033/api/sec/usersroles/rolesCRUD?procedure=activate&roleid=",
+    successMessage: "Rol activado correctamente.",
+    updateOnly: true
+  });
+},
 
       onDeleteRole: function () {
       this._handleRoleAction({
@@ -277,25 +302,19 @@ onDesactivateRole: function () {
     });
     const data = await response.json();
 
+    const aAllRoles = data.value || []; // No filtrar nada
+    const aFiltered = aAllRoles;
 
-    const aAllRoles = (data.value || []).filter(role => role.DETAIL_ROW?.DELETED === false);
-    const aFiltered = aAllRoles.filter(role => role.DETAIL_ROW?.ACTIVED === true);
-
-
-    // 🔁 Si ya existe el modelo, actualiza sus propiedades
     let oRolesModel = this.getOwnerComponent().getModel("roles");
     if (!oRolesModel) {
       oRolesModel = new JSONModel();
       this.getOwnerComponent().setModel(oRolesModel, "roles");
     }
 
-
     oRolesModel.setProperty("/valueAll", aAllRoles);
     oRolesModel.setProperty("/value", aFiltered);
-    oRolesModel.setProperty("/filterKey", "active");
-    oRolesModel.refresh(true); // 🔄 Fuerza actualización de bindings
-
-
+    oRolesModel.setProperty("/filterKey", "all");
+    oRolesModel.refresh(true);
   } catch (error) {
     Log.error("Error al cargar roles", error);
   }
@@ -467,59 +486,8 @@ _handleRoleAction: async function (options) {
 
             if (result && !result.error) {
               MessageToast.show(options.successMessage);
-              const oRolesModel = that.getOwnerComponent().getModel("roles");
-              if (oRolesModel) {
-                let aRoles = oRolesModel.getProperty("/valueAll");
-
-
-                // 🔄 Si es actualización lógica, modifica solo el estado
-                if (options.updateOnly) {
-                  aRoles = aRoles.map(role => {
-                    if (role.ROLEID === oData.ROLEID) {
-                      return {
-                        ...role,
-                        DETAIL_ROW: {
-                          ...role.DETAIL_ROW,
-                          ACTIVED: false
-                        }
-                      };
-                    }
-                    return role;
-                  });
-                } else {
-                  // ❌ Eliminación física (remueve el rol del modelo)
-                  aRoles = aRoles.filter(role => role.ROLEID !== oData.ROLEID);
-                }
-
-
-                // Reaplica el filtro
-                const sFilterKey = oRolesModel.getProperty("/filterKey") || "active";
-                let aFiltered = [];
-
-
-                switch (sFilterKey) {
-                  case "active":
-                    aFiltered = aRoles.filter(r => r.DETAIL_ROW?.ACTIVED && !r.DETAIL_ROW?.DELETED);
-                    break;
-                  case "inactive":
-                    aFiltered = aRoles.filter(r => !r.DETAIL_ROW?.ACTIVED && !r.DETAIL_ROW?.DELETED);
-                    break;
-                  default:
-                    aFiltered = aRoles.filter(r => !r.DETAIL_ROW?.DELETED);
-                }
-
-
-                oRolesModel.setProperty("/valueAll", aRoles);
-                oRolesModel.setProperty("/value", aFiltered);
-              }
-
-
-              //that.getOwnerComponent().getRouter().navTo("RouteRolesMaster");
-              that.loadRolesData(); // Recargar roles
-
-
-
-
+              that.loadRolesData(); // Esto refresca todo el modelo y la tabla
+              // ...recarga detalle si quieres...
             } else {
               MessageBox.error("Error: " + (result?.message || "desconocido"));
             }
