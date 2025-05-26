@@ -1,51 +1,103 @@
 <core:FragmentDefinition
     xmlns="sap.m"
     xmlns:core="sap.ui.core"
-    xmlns:form="sap.ui.layout.form">
-    
+    xmlns:form="sap.ui.layout.form"
+>
     <Dialog
         id="editDialogValue"
         title="Editar Value"
-        contentWidth="600px">
-        
+        contentWidth="600px"
+    >
         <content>
             <form:SimpleForm editable="true">
-            <Label text="LABELID" required="true"/>
-        <Text text="{values>/selectedValue/LABELID}" />
-        
-         <Label text="VALUEID" required="true"/>
-        <Input value="{newValueModel>/VALUEID}"  id="InputValueIdEdit" editable="false"/>
+                <Label
+                    text="LABELID"
+                    required="true"
+                />
+                <Text text="{values>/selectedValue/LABELID}" />
 
-        <Label text="VALUE" required="true"/>
-        <Input value="{newValueModel>/VALUE}" />
+                <Label
+                    text="VALUEID"
+                    required="true"
+                />
+                <Input
+                    value="{newValueModel>/VALUEID}"
+                    id="InputValueIdEdit"
+                    editable="false"
+                />
 
-        <Label text="VALUEPAID" />
-        <Input value="{newValueModel>/VALUEPAID}" />
+                <Label
+                    text="VALUE"
+                    required="true"
+                />
+                <Input value="{newValueModel>/VALUE}" />
 
-        <Label text="ALIAS" />
-        <Input value="{newValueModel>/ALIAS}" />
+                <Label text="Label ID" />
+                <ComboBox
+                    items="{
+                          path: 'values>/AllLabels',
+                          sorter: { path: 'LABELID' }
+                        }"
+                    selectedKey="{newValueModel>/ValuePaid1}"
+                    selectionChange=".onLabelIdChange"
+                >
+                    <core:Item
+                        key="{values>LABELID}"
+                        text="{values>LABELID}"
+                    />
+                </ComboBox>
 
-        <Label text="IMAGE" />
-        <Input value="{newValueModel>/IMAGE}" />
+                <Label text="Values ID que están en LABELID" />
+                <ComboBox
+                    id="valueIdComboBox2"
+                    items="{
+                              path: 'values>/FilteredValues',
+                              sorter: { path: 'VALUEID' }
+                            }"
+                    selectedKey="{newValueModel>/ValuePaid2}"
+                >
+                    <core:Item
+                        key="{values>VALUEID}"
+                        text="{values>VALUEID}"
+                    />
+                </ComboBox>
 
-        <Label text="DESCRIPTION" />
-        <TextArea value="{newValueModel>/DESCRIPTION}" rows="3"/>
-                
+                <Label text="ALIAS" />
+                <Input value="{newValueModel>/ALIAS}" />
+
+                <Label text="IMAGE" />
+                <Input value="{newValueModel>/IMAGE}" />
+
+                <Label text="DESCRIPTION" />
+                <TextArea
+                    value="{newValueModel>/DESCRIPTION}"
+                    rows="3"
+                />
+                <Label text="Estado Inicial" />
+                <Switch
+                    state="{newValueModel>/DETAIL_ROW/ACTIVED}"
+                    customTextOn="ACTIVO"
+                    customTextOff="INACTIVO"
+                    change=".onSwitchChange"
+                />
+
                 <!-- Agrega más campos según necesites -->
             </form:SimpleForm>
         </content>
-        
+
         <beginButton>
-            <Button 
-                text="Guardar" 
-                type="Emphasized" 
-                press="onEditValue"/>
+            <Button
+                text="Guardar"
+                type="Emphasized"
+                press="onEditValue"
+            />
         </beginButton>
-        
+
         <endButton>
-            <Button 
-                text="Cancelar" 
-                press="onCancelEdit"/>
+            <Button
+                text="Cancelar"
+                press="onCancelEdit"
+            />
         </endButton>
     </Dialog>
 </core:FragmentDefinition>

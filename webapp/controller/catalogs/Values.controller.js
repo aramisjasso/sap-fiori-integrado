@@ -22,7 +22,20 @@ sap.ui.define([
                 values: [],       // Datos de la tabla
                 selectedValueIn: null  // 🔥 Para controlar los botones
             }), "values");
-
+            this.getView().setModel(
+            new JSONModel({
+              values: [],
+              AllValues: null,
+            }),
+            "values"
+          );
+          this.getView().setModel(
+            new JSONModel({
+              values: [],
+              AllLabels: null,
+            }),
+            "values"
+          );
             // Modelo para los datos del formulario
             this.getView().setModel(new JSONModel({
                 VALUEID: "",
@@ -34,8 +47,31 @@ sap.ui.define([
             }), "newValueModel");
         },
         // Método para cargar los valores en el modelo
-        loadValues: function (aValues) {
-            this.getView().getModel("values").setProperty("/values", aValues || []);
+        loadValues: function (aFilteredValues, aAllValues, oAllLabels) {
+          this.getView()
+            .getModel("values")
+            .setProperty("/values", aFilteredValues || []);
+          this.getView()
+            .getModel("values")
+            .setProperty("/AllValues", aAllValues || []);
+          this.getView()
+            .getModel("values")
+            .setProperty("/AllLabels", oAllLabels || []);
+        },
+        onLabelIdChange: function (oEvent) {
+          var sSelectedLabelId = oEvent.getParameter("selectedItem").getKey();
+          var oView = this.getView();
+
+          var aAllValues =
+            oView.getModel("values").getProperty("/AllValues") || [];
+          var aFiltered = aAllValues.filter(function (oValue) {
+            return oValue.LABELID === sSelectedLabelId;
+          });
+
+          oView.getModel("values").setProperty("/FilteredValues", aFiltered);
+
+          // Limpia el VALUEPAID seleccionado si deseas reiniciar el segundo combobox
+          oView.getModel("newValueModel").setProperty("/VALUEPAID", "");
         },
         // Método para abrir el diálogo de selección de valores
         onItemSelect: function (oEvent) {
@@ -52,7 +88,9 @@ sap.ui.define([
             });
 
             // Activa el modo de edición
-            this.getView().getModel("values").setProperty("/selectedValueIn", true);
+          this.getView()
+            .getModel("values")
+            .setProperty("/selectedValueIn", oSelectedData);
         },
         // Método para esditar el nuevo valor
         onEditValue: function () {
@@ -269,9 +307,9 @@ sap.ui.define([
             // Construir objeto con todos los parámetros
             var oParams = {
                 // Estructura anidada para DETAIL_ROW
-                "DETAIL_ROW": {
-                    "ACTIVED": aceptar,
-                    "DELETED": rechazar
+                DETAIL_ROW: {
+                    ACTIVED: aceptar,
+                    DELETED: rechazar
                 },
             };
 
@@ -355,6 +393,17 @@ sap.ui.define([
                     }
                 }.bind(this)
             });
+        },
+        onSwitchChange: function (oEvent) {
+          var bState = oEvent.getParameter("state");
+          var oModel = this.getView().getModel("newValueModel");
+
+          oModel.setProperty("/DETAIL_ROW/ACTIVED", bState);
+          if (bState === true) {
+            oModel.setProperty("/DETAIL_ROW/DELETED", false);
+          } else {
+            oModel.setProperty("/DETAIL_ROW/DELETED", true);
+          }
         },
         onChangeValue: function () {
             var oView = this.getView();

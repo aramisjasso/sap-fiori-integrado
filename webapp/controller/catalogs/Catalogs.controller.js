@@ -22,6 +22,7 @@ sap.ui.define(
           var that = this;
 
           this._oDialog = null;
+          this._aAllValues = []; // Array para almacenar todos los valores
 
           $.ajax({
             url: "http://localhost:3033/api/catalogos/getAllLabels?type=catalog",
@@ -31,6 +32,31 @@ sap.ui.define(
               that.getView().setModel(oModel);
             },
           });
+
+          fetch(
+                "http://localhost:3033/api/catalogos/getAllLabels?type=value",
+                {
+                  method: "GET",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                }
+              )
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("Error al cargar valores iniciales");
+              }
+              return response.json();
+            })
+            .then((data) => {
+              // Almacenar todos los valores en el array
+              this._aAllValues = data.value || [];
+              
+            })
+            .catch((error) => {
+              console.error("Error en la petición fetch:", error);
+              MessageToast.show("Error al cargar datos iniciales");
+            });
         },
 
         // ---------------------------------------------------- PARA FILTRAR EN LA TABLA
@@ -127,8 +153,8 @@ sap.ui.define(
           var aData = oTableModel.getProperty("/value") || [];
 
           // Validación básica
-          if (!oData.LABELID || !oData.LABEL) {
-            MessageToast.show("LABELID y LABEL son campos requeridos");
+          if (!oData.LABELID || !oData.LABEL || !oData.DESCRIPTION) {
+            MessageToast.show("LABELID, LABEL Y DESCRIPTION son campos requeridos");
             return;
           }
 
@@ -218,6 +244,14 @@ sap.ui.define(
           // Obtener el modelo de la tabla
           var oTableModel = this.getView().getModel();
           var aData = oTableModel.getProperty("/value") || [];
+
+          // Validación básica
+          if (!oEditedData.LABELID || !oEditedData.LABEL || !oEditedData.DESCRIPTION) {
+            MessageToast.show(
+              "LABELID, LABEL Y DESCRIPTION son campos requeridos"
+            );
+            return;
+          }
           var payload = {
             label: {
               "COMPANYID": oEditedData.COMPANYID,
@@ -264,6 +298,11 @@ sap.ui.define(
                 };
                 oTableModel.setProperty("/values", aData);
               }
+               // Actualizar visibilidad de botones según estado
+              this.byId("activateButton").setVisible(!oEditedData.DETAIL_ROW.ACTIVED);
+              this.byId("activateButton").setEnabled(!oEditedData.DETAIL_ROW.ACTIVED);
+              this.byId("deactivateButton").setVisible(oEditedData.DETAIL_ROW.ACTIVED);
+              this.byId("deactivateButton").setEnabled(oEditedData.DETAIL_ROW.ACTIVED);
             }.bind(this),
             error: function (error) {
               MessageToast.show("Error al actualizar: " + error.responseText);
@@ -411,54 +450,57 @@ sap.ui.define(
         onItemPress: function (oEvent) {
           var oItem = oEvent.getParameter("listItem");
           var oContext = oItem.getBindingContext();
-          var oSelectedData = oContext.getObject(); // Obtiene los datos del ítem seleccionado
+          var oSelectedData = oContext.getObject();
 
-          var sLabelID = oSelectedData.LABELID;
-          var sUrl =
-            "http://localhost:3033/api/catalogos/getAllLabels?type=value&labelID=" +
-            encodeURIComponent(sLabelID);
-          var that = this;
-
-          $.ajax({
-            url: sUrl,
-            method: "GET",
-            dataType: "json",
-            success: function (response) {
-              var oValuesView = that.byId("XMLViewValues");
-              if (oValuesView) {
-                oValuesView.loaded().then(function () {
-                  var oController = oValuesView.getController();
-                  if (oController && oController.loadValues) {
-                    // Pasa los valores y también el ítem seleccionado
-                    oController.loadValues(response.value || []);
-
-                    // Actualiza el selectedValue en el modelo values
-                    oValuesView
-                      .getModel("values")
-                      .setProperty("/selectedValue", oSelectedData);
-                  }
-                });
-              }
-            },
-            error: function () {
-              MessageToast.show("Error al cargar valores");
-            },
+          // Filtrar valores localmente por LABELID seleccionado, para evitar múltiples llamadas a la API
+          var aFilteredValues = this._aAllValues.filter(function (oValue) {
+            return oValue.LABELID === oSelectedData.LABELID;
           });
 
-          // Expandir el panel derecho
-          var oSplitter = this.byId("mainSplitter");
-          var oDetailPanel = this.byId("detailPanel");
-          var oLayoutData = oDetailPanel.getLayoutData();
-          if (oLayoutData) {
-            oLayoutData.setSize("50%"); // O el porcentaje/píxeles que prefieras
+          var oAllLabels = this.getView().getModel().getProperty("/value");
+          var aAllValues = this._aAllValues;
+          var oValuesView = this.byId("XMLViewValues");
+          if (oValuesView) {
+            oValuesView.loaded().then(
+              function () {
+                var oController = oValuesView.getController();
+                if (oController && oController.loadValues) {
+                  // Pasar los valores filtrados
+                  oController.loadValues(
+                    aFilteredValues,
+                    aAllValues,
+                    oAllLabels
+                  );
+
+                  // Actualizar el selectedValue en el modelo "values"
+                  oValuesView
+                    .getModel("values")
+                    .setProperty("/selectedValue", oSelectedData);
+                  oValuesView
+                    .getModel("values")
+                    .setProperty("/AllValues", aAllValues);
+                  oValuesView
+                    .getModel("values")
+                    .setProperty("/AllLabels", oAllLabels);
+                }
+              }.bind(this)
+            );
           }
 
-          // Opcional: reducir el panel izquierdo
-          var oLeftPanel = oSplitter.getContentAreas()[0];
-          var oLeftLayoutData = oLeftPanel.getLayoutData();
-          if (oLeftLayoutData) {
-            oLeftLayoutData.setSize("50%");
-          }
+          // Expandir el panel derecho
+          // var oSplitter = this.byId("mainSplitter");
+          // var oDetailPanel = this.byId("detailPanel");
+          // var oLayoutData = oDetailPanel.getLayoutData();
+          // if (oLayoutData) {
+          //   oLayoutData.setSize("50%"); // O el porcentaje/píxeles que prefieras
+          // }
+
+          // // Opcional: reducir el panel izquierdo
+          // var oLeftPanel = oSplitter.getContentAreas()[0];
+          // var oLeftLayoutData = oLeftPanel.getLayoutData();
+          // if (oLeftLayoutData) {
+          //   oLeftLayoutData.setSize("50%");
+          // }
         },
 
         // ---------------------------------------------------- FIN PARA CARGAR VALORES EN EL PANEL DERECHO

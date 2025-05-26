@@ -32,10 +32,10 @@
         <Label text="IMAGE URL"/>
         <Input value="{addCatalogModel>/IMAGE}"/>
         
-        <Label text="DESCRIPTION"/>
+        <Label text="DESCRIPTION" required="true"/>
         <TextArea value="{addCatalogModel>/DESCRIPTION}" rows="3"/>
         
-        <Label text="Estado Inicial"/>
+        <Label text="ESTADO"/>
         <Switch state="{addCatalogModel>/DETAIL_ROW/ACTIVED}" customTextOn="ACTIVO" customTextOff="INACTIVO"/>
       </form:SimpleForm>
     </content>
