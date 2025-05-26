@@ -81,7 +81,8 @@ sap.ui.define([
       const oHistoryModel = new JSONModel({
           strategies: [],       // Aquí irán las estrategias dinámicas
           filteredCount: 0,    
-          selectedCount: 0,    
+          selectedCount: 0,
+          isDeleteMode: false,    
           filters: {
               dateRange: null,
               investmentRange: [0, 10000],
@@ -251,8 +252,8 @@ sap.ui.define([
     },
 
     _handleAnalysisResponse: function(data, oStrategyModel, oResultModel) {
-        console.log("Datos para la gráfica:", data.CHART_DATA);
-        console.log("Señales:", data.SIGNALS);
+        // console.log("Datos para la gráfica:", data.CHART_DATA);
+        // console.log("Señales:", data.SIGNALS);
         
         // Actualizar modelo de resultados
         oResultModel.setData({
@@ -339,6 +340,19 @@ sap.ui.define([
       }
     },
 
+    formatDateRange: function(sStartDate, sEndDate) {
+        if (!sStartDate || !sEndDate) return "";
+        
+        const oDateFormat = sap.ui.core.format.DateFormat.getDateInstance({
+            pattern: "dd/MM/yyyy"
+        });
+        
+        const oStartDate = new Date(sStartDate);
+        const oEndDate = new Date(sEndDate);
+        
+        return oDateFormat.format(oStartDate) + " - " + oDateFormat.format(oEndDate);
+    },
+
     formatDate: function(oDate) {
         if (!oDate) return "";
         return DateFormat.getDateInstance({
@@ -422,20 +436,33 @@ sap.ui.define([
                 strategyName: simulation.SIMULATIONNAME,
                 symbol: simulation.SYMBOL,
                 result: simulation.SUMMARY?.REAL_PROFIT || 0,
+                rentability: simulation.SUMMARY?.PERCENTAGE_RETURN,
+                initialAmount: this._CONSTANTS.DEFAULT_BALANCE, //prueba
                 status: "Completado",
-                details: simulation
+                details: simulation,
+                strategyType: simulation.STRATEGY,
+
             }));
             
             this.getView().setModel(new JSONModel({
                 strategies: transformedData,
                 filteredCount: transformedData.length,    
-                selectedCount: 0,    
+                selectedCount: 0,
+                isDeleteMode: false,    
                 filters: {            
                     dateRange: null,
                     investmentRange: [0, 10000],
                     profitRange: [-100, 100]
                 }
             }), "historyModel");
+
+            const oDateRange = sap.ui.getCore().byId("dateRangeFilter");
+            const oInvestmentRange = sap.ui.getCore().byId("investmentRangeFilter");
+            const oProfitRange = sap.ui.getCore().byId("profitRangeFilter");
+            
+            if (oDateRange) oDateRange.setValue(null);
+            if (oInvestmentRange) oInvestmentRange.setRange([0, 10000]);
+            if (oProfitRange) oProfitRange.setRange([-100, 100]);
             
         } finally {
             sap.ui.core.BusyIndicator.hide();
@@ -443,8 +470,24 @@ sap.ui.define([
     },
 
    onSelectionChange: function(oEvent) {
-        // Guarda la estrategia seleccionada directamente
-        this._oSelectedStrategy = oEvent.getParameter("listItem")?.getBindingContext("historyModel")?.getObject();
+        const oModel = this.getView().getModel("historyModel");
+        const bDeleteMode = oModel.getProperty("/isDeleteMode");
+        const oTable = oEvent.getSource();
+        
+        if (bDeleteMode) {
+            // Modo eliminación: contar todas las selecciones
+            const aSelectedItems = oTable.getSelectedItems();
+            oModel.setProperty("/selectedCount", aSelectedItems.length);
+        } else {
+            // Modo carga: solo una selección
+            const oItem = oEvent.getParameter("listItem");
+            const bSelected = oEvent.getParameter("selected");
+            
+            oModel.setProperty("/selectedCount", bSelected ? 1 : 0);
+            this._oSelectedStrategy = bSelected ? 
+                oItem.getBindingContext("historyModel").getObject() : 
+                null;
+        }
     },
 
     onLoadStrategy: async function() {
@@ -464,20 +507,11 @@ sap.ui.define([
             const oStrategyModel = this.getView().getModel("strategyAnalysisModel");
             const oResultModel = this.getView().getModel("strategyResultModel");
             
-            oStrategyModel.setProperty("/symbol", simulationDetail.SYMBOL);
-            
-            // Extraer valores de SPECS
-            simulationDetail.SPECS?.forEach(spec => {
-                if (spec.INDICATOR === "SHORT_MA") oStrategyModel.setProperty("/shortSMA", spec.VALUE);
-                if (spec.INDICATOR === "LONG_MA") oStrategyModel.setProperty("/longSMA", spec.VALUE);
-            });
-            
-            // 3. Preparar datos para resultados
-            oResultModel.setData({
-                hasResults: true,
-                chart_data: this._prepareTableData(simulationDetail.CHART_DATA || [], simulationDetail.SIGNALS || []),
-                signals: simulationDetail.SIGNALS || [],
-                simulationName: simulationDetail.SIMULATIONNAME
+            this._updateModelsWithSimulationData({
+                simulationDetail,
+                oStrategyModel,
+                oResultModel,
+                oItem: this._oSelectedStrategy
             });
             
             // 4. Cerrar y feedback
@@ -508,8 +542,21 @@ sap.ui.define([
 
     // Función para actualizar modelos
     _updateModelsWithSimulationData: function({ simulationDetail, oStrategyModel, oResultModel, oItem }) {
+         // Actualizar el ComboBox de símbolo
+        const oSymbolSelector = this.byId("symbolSelector");
+        if (oSymbolSelector) {
+            oSymbolSelector.setSelectedKey(simulationDetail.SYMBOL);
+        }
         // Datos para strategyAnalysisModel
-        oStrategyModel.setProperty("/symbol", simulationDetail.SYMBOL);
+        oStrategyModel.setData({
+            ...oStrategyModel.getData(),
+            symbol: simulationDetail.SYMBOL,
+            strategyKey: "MACrossover", // O el valor que corresponda
+            balance: this._CONSTANTS.DEFAULT_BALANCE,
+            startDate: new Date(simulationDetail.STARTDATE),
+            endDate: new Date(simulationDetail.ENDDATE),
+            controlsVisible: true // Mostrar los controles de la estrategia
+        });
         
         // Extracción dinámica de SPECS
         const specsMap = {};
@@ -547,33 +594,71 @@ sap.ui.define([
         }
     },
 
-    onDeleteSelected: function() {
-      const oTable = this.byId("historyTable");
-      const aSelectedItems = oTable.getSelectedItems();
-      
-      if (!aSelectedItems.length) return;
-      
-      MessageBox.confirm("¿Desea eliminar las " + aSelectedItems.length + " estrategias seleccionadas?", {
-          onClose: function(oAction) {
-              if (oAction === MessageBox.Action.OK) {
-                  const oModel = this.getView().getModel("historyModel");
-                  const aStrategies = oModel.getProperty("/strategies");
-                  const aSelectedPaths = aSelectedItems.map(item => 
-                      parseInt(item.getBindingContext("historyModel").getPath().split("/")[2])
-                  );
-                  
-                  // Eliminar elementos seleccionados
-                  const aFilteredStrategies = aStrategies.filter((_, index) => 
-                      !aSelectedPaths.includes(index)
-                  );
-                  
-                  oModel.setProperty("/strategies", aFilteredStrategies);
-                  this._saveStrategiesToLocalStorage(aFilteredStrategies);
-                  MessageToast.show("Estrategias eliminadas correctamente");
-              }
-          }.bind(this)
-      });
+    onToggleDeleteMode: function(oEvent) {
+        const oModel = this.getView().getModel("historyModel");
+        const bDeleteMode = oEvent.getParameter("pressed");
+        
+        oModel.setProperty("/isDeleteMode", bDeleteMode);
+        
+        // Limpiar selecciones al cambiar de modo
+        const oTable = sap.ui.getCore().byId("historyTable");
+        oTable.removeSelections(true);
+        oModel.setProperty("/selectedCount", 0);
+        this._oSelectedStrategy = null;
     },
+
+onDeleteSelected: function() {
+    const oTable = sap.ui.getCore().byId("historyTable");
+    const aSelectedItems = oTable.getSelectedItems();
+    
+    if (!aSelectedItems.length) {
+        MessageToast.show("Selecciona al menos una estrategia para eliminar");
+        return;
+    }
+
+    MessageBox.confirm("¿Desea eliminar las estrategias seleccionadas?", {
+        onClose: async function(oAction) {
+            if (oAction === MessageBox.Action.OK) {
+                try {
+                    sap.ui.core.BusyIndicator.show(0);
+                    
+                    // Get simulation ID
+                    const oSelectedItem = aSelectedItems[0];
+                    const oContext = oSelectedItem.getBindingContext("historyModel");
+                    const oData = oContext.getObject();
+                    const sSimulationId = oData.details.SIMULATIONID;
+
+                    const response = await fetch("http://localhost:3033/api/inv/deleteSimulation", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            idSimulation: sSimulationId,
+                            idUser: "ARAMIS"
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || "Error al eliminar");
+                    }
+
+                    await this._loadHistoryData();
+                    MessageToast.show("Estrategia eliminada correctamente");
+                    
+                    const oModel = this.getView().getModel("historyModel");
+                    oModel.setProperty("/isDeleteMode", false);
+                    oModel.setProperty("/selectedCount", 0);
+
+                } catch (error) {
+                    console.error("Error detallado:", error);
+                    MessageBox.error(error.message || "Error al eliminar la estrategia");
+                } finally {
+                    sap.ui.core.BusyIndicator.hide();
+                }
+            }
+        }.bind(this)
+    });
+},
 
 onStrategyNameClick: function(oEvent) {
     const oInput = oEvent.getSource();
@@ -641,77 +726,112 @@ onStrategyNameSubmit: function(oEvent) {
     },
 
     _applyFilters: function() {
-        const oTable = this.byId("historyTable");
-        const oSearchField = this.byId("searchField");
-        const oDateRange = this.byId("dateRange");
-        const oSymbolFilter = this.byId("symbolFilter");
-        const oInvestmentRange = this.byId("investmentRange");
-        const oProfitRange = this.byId("profitRange");
+        const oTable = sap.ui.getCore().byId("historyTable");
+        if (!oTable) return;
         
-        // Crear filtros
+        const oBinding = oTable.getBinding("items");
+        if (!oBinding) return;
+
         const aFilters = [];
         
-        // Filtro de búsqueda
-        if (oSearchField.getValue()) {
-            aFilters.push(new Filter("strategyName", FilterOperator.Contains, oSearchField.getValue()));
+        // 1. Filtro de búsqueda
+        const sSearchValue = sap.ui.getCore().byId("searchField")?.getValue();
+        if (sSearchValue) {
+            aFilters.push(new Filter({
+                filters: [
+                    new Filter({
+                        path: "strategyName",
+                        operator: FilterOperator.Contains,
+                        value1: sSearchValue
+                    }),
+                    new Filter({
+                        path: "symbol",
+                        operator: FilterOperator.Contains,
+                        value1: sSearchValue.toUpperCase()
+                    })
+                ],
+                and: false
+            }));
         }
         
-        // Filtro de fechas
-        if (oDateRange.getDateValue() && oDateRange.getSecondDateValue()) {
-            aFilters.push(new Filter("date", FilterOperator.BT, 
-                oDateRange.getDateValue(), 
-                oDateRange.getSecondDateValue()));
+        // 2. Filtro de fechas
+        const oDateRange = sap.ui.getCore().byId("dateRangeFilter");
+        if (oDateRange?.getDateValue() && oDateRange?.getSecondDateValue()) {
+            const oFilterStartDate = oDateRange.getDateValue();
+            const oFilterEndDate = oDateRange.getSecondDateValue();
+            
+            aFilters.push(new Filter({
+                test: function(oItem) {
+                    const oStrategyStartDate = new Date(oItem.details.STARTDATE);
+                    const oStrategyEndDate = new Date(oItem.details.ENDDATE);
+                    
+                    return oStrategyStartDate <= oFilterEndDate && 
+                        oStrategyEndDate >= oFilterStartDate;
+                }
+            }));
         }
         
-        // Filtro de símbolo
-        if (oSymbolFilter.getValue()) {
-            aFilters.push(new Filter("symbol", FilterOperator.Contains, oSymbolFilter.getValue()));
+        
+        // // 3. Filtro de inversión
+        const oInvestmentRange = sap.ui.getCore().byId("investmentRangeFilter");
+        if (oInvestmentRange) {
+            const [minInv, maxInv] = oInvestmentRange.getRange();
+            console.log("=== INICIO FILTRO INVERSIÓN ===");
+            console.log("Rango seleccionado:", {min: minInv, max: maxInv});
+            
+            aFilters.push(new Filter({
+                test: function(oItem) {
+                    // Usar el monto inicial guardado
+                    const amount = oItem.initialAmount;
+                    
+                    console.log("Evaluando estrategia:", {
+                        name: oItem.strategyName,
+                        montoInvertido: amount,
+                        rango: `${minInv} a ${maxInv}`,
+                        pasa: amount >= minInv && amount <= maxInv
+                    });
+                    
+                    return amount >= minInv && amount <= maxInv;
+                }
+            }));
+            console.log("=== FIN FILTRO INVERSIÓN ===");
+        }
+                
+        //// 4. Filtro de rentabilidad
+        const oProfitRange = sap.ui.getCore().byId("profitRangeFilter");
+        if (oProfitRange) {
+            const [minProfit, maxProfit] = oProfitRange.getRange();          
+            aFilters.push(new Filter({
+                test: function(oItem) {
+                    const profitPercentage = oItem.rentability || 0;                  
+                    return profitPercentage >= minProfit && profitPercentage <= maxProfit;
+                }
+            }));
         }
         
-        // Filtro de inversión
-        const [minInv, maxInv] = oInvestmentRange.getRange();
-        aFilters.push(new Filter("investment", FilterOperator.BT, minInv, maxInv));
-        
-        // Filtro de rentabilidad
-        const [minProfit, maxProfit] = oProfitRange.getRange();
-        aFilters.push(new Filter("result", FilterOperator.BT, minProfit, maxProfit));
-        
-        // Aplicar filtros
-        const oBinding = oTable.getBinding("items");
-        oBinding.filter(new Filter({
-            filters: aFilters,
-            and: true
-        }));
+        // Aplicar todos los filtros juntos
+        if (aFilters.length > 0) {
+            oBinding.filter(new Filter({
+                filters: aFilters,
+                and: true
+            }));
+        } else {
+            oBinding.filter(null);
+        }
         
         // Actualizar contador
-        this.getView().getModel("historyModel").setProperty("/filteredCount", 
-            oBinding.getLength());
-    }, 
+        const oModel = this.getView().getModel("historyModel");
+        oModel.setProperty("/filteredCount", oBinding.getLength());
+    },
 
+    // Actualizar onSearch para que use _applyFilters
     onSearch: function(oEvent) {
-      const sQuery = oEvent.getParameter("query");
-      const oTable = sap.ui.getCore().byId("historyTable");
-      const oBinding = oTable.getBinding("items");
+        this._applyFilters();
+    },
 
-      if (!oBinding) return;
-
-      if (!sQuery) {
-          oBinding.filter([]);
-          return;
-      }
-
-      // Crear filtros para nombre y símbolo
-      const aFilters = [
-          new Filter("strategyName", FilterOperator.Contains, sQuery),
-          new Filter("symbol", FilterOperator.Contains, sQuery.toUpperCase())
-      ];
-
-      // Aplicar filtros con OR
-      oBinding.filter(new Filter({
-          filters: aFilters,
-          and: false
-      }));
-  },
+        onFilterChange: function() {
+        this._applyFilters();
+    },
 
     onExit: function() {
         if (this._oHistoryPopover) {
