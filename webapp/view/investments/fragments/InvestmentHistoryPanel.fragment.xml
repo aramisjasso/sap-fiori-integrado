@@ -7,8 +7,8 @@
         placement="Bottom"
         showHeader="true"
         contentWidth="1100px"
-        contentHeight="auto"
         modal="true"
+        contentHeight="500px"
         class="">
         <content>
             <!-- Barra de búsqueda y filtros -->
@@ -94,7 +94,7 @@
 
 
             <!-- Tabla -->
-            <ScrollContainer height="250px" vertical="true" horizontal="false" width="100%">
+            <ScrollContainer height="80%" vertical="true" horizontal="false" width="100%">
                 <Table
                     id="historyTable"
                     items="{historyModel>/strategies}"
@@ -135,8 +135,7 @@
                                 
                                 </Input>
                                 <Text text="{
-                                    path: 'historyModel>details/STRATEGY',
-                                    formatter: '.formatStrategyType'
+                                    path: 'historyModel>details/STRATEGY'
                                 }"/>
                                 <Text text="{
                                     parts: [

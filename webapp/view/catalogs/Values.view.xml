@@ -37,6 +37,7 @@
             icon="sap-icon://accept"
             press=".StatusValueAccept"
             enabled="{= !!${values>/selectedValueIn}}"
+            visible="{= ${values>/selectedValueIn/DETAIL_ROW/ACTIVED} === false }"
         />
         <Button
             text="Desactivar"
@@ -44,6 +45,7 @@
             type="Reject"
             press=".StatusValueDecline"
             enabled="{= !!${values>/selectedValueIn}}"
+            visible="{= ${values>/selectedValueIn/DETAIL_ROW/ACTIVED} === true }"
         />
         <Button
             text="Eliminar"

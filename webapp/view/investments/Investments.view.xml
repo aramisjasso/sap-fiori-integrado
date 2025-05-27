@@ -154,17 +154,20 @@
                             </Panel>
                         </VBox>
                         <!-- Strategy Analysis Panel -->
-                        <VBox width="300px" class="sapUiSmallMarginBottom">
+                        <VBox width="300px">
+                            <!-- Analysis Panel -->
                             <core:Fragment id="strategyAnalysisPanelChart" 
-                                         fragmentName="com.invertions.sapfiorimodinv.view.investments.fragments.StrategyAnalysisPanel" 
-                                         type="XML"/>
+                                        fragmentName="com.invertions.sapfiorimodinv.view.investments.fragments.StrategyAnalysisPanel" 
+                                        type="XML"/>
+                            
+                            <!-- Results Panel -->
+                            <core:Fragment 
+                                fragmentName="com.invertions.sapfiorimodinv.view.investments.fragments.StrategyResultPanel" 
+                                type="XML"
+                                class="sapUiSmallMarginTop"/>
                         </VBox>
                     </FlexBox>
                 <!-- Strategy Results -->
-                <VBox width="auto">
-                    <core:Fragment fragmentName="com.invertions.sapfiorimodinv.view.investments.fragments.StrategyResultPanel" 
-                                 type="XML"/>
-                </VBox>
                 </VBox>
             </VBox>
         </content>

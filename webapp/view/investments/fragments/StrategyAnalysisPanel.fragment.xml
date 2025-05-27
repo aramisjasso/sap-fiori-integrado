@@ -2,7 +2,7 @@
     xmlns="sap.m"
     xmlns:f="sap.ui.layout.form"
     xmlns:core="sap.ui.core">
-    <Panel id="strategyAnalysisPanelFragment" headerText="{i18n>strategyAnalysisPanelTitle}" expandable="true" expanded="true" width="100%">
+    <Panel id="strategyAnalysisPanelFragment" headerText="{i18n>strategyAnalysisPanelTitle}" expandable="true" expanded="{viewModel>/analysisPanelExpanded}" width="100%">
         <content>
             <f:SimpleForm id="strategyAnalysisFormInFragment" editable="true" layout="ResponsiveGridLayout"
                 labelSpanXL="4" labelSpanL="4" labelSpanM="12" labelSpanS="12"

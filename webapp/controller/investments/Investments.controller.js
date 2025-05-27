@@ -8,8 +8,9 @@ sap.ui.define([
   "sap/viz/ui5/data/FlattenedDataset",
   "sap/viz/ui5/controls/common/feeds/FeedItem",
   "sap/ui/model/Filter",
-  "sap/ui/model/FilterOperator"
-], function(Controller, JSONModel, MessageToast, DateFormat, MessageBox, VizFrame, FlattenedDataset, FeedItem, Filter, FilterOperator) {
+  "sap/ui/model/FilterOperator",
+  "sap/ui/core/format/NumberFormat"
+], function(Controller, JSONModel, MessageToast, DateFormat, MessageBox, VizFrame, FlattenedDataset, FeedItem, Filter, FilterOperator, NumberFormat) {
   "use strict";
 
   return Controller.extend("com.invertions.sapfiorimodinv.controller.investments.Investments", {
@@ -36,21 +37,20 @@ sap.ui.define([
 
     // Inicialización de modelos
     _initModels: function() {
-      // Modelo de símbolos
-      this.getView().setModel(new JSONModel({
-        symbols: [
-          { symbol: "TSLA", name: "Tesla" },
-          { symbol: "AAPL", name: "Apple" },
-          { symbol: "MSFT", name: "Microsoft" }
-        ]
-      }), "symbolModel");
+        // Modelo de símbolos
+        const oSymbolsModel = new JSONModel();
+        oSymbolsModel.loadData("/model/symbols.json");
+        this.getView().setModel(oSymbolsModel, "symbolModel");
+
 
       // Modelo para datos de precios
       this.getView().setModel(new JSONModel({ value: [] }), "priceData");
 
       // Modelo de vista
       this.getView().setModel(new JSONModel({
-        selectedTab: "table"
+        selectedTab: "table",
+        analysisPanelExpanded: true,
+        resultPanelExpanded: false
       }), "viewModel");
 
       // Modelo de análisis de estrategia
@@ -69,10 +69,12 @@ sap.ui.define([
       
       // Modelo de resultados
       this.getView().setModel(new JSONModel({
+        isLoading: false,
         hasResults: false,
         chart_data: [],
         signals: [],
         result: null,
+        symbol: "",
 
       }), "strategyResultModel");
 
@@ -194,17 +196,33 @@ sap.ui.define([
       this.getView().getModel("strategyAnalysisModel").setProperty("/controlsVisible", !!sSelectedKey);
     },
 
-    onRunAnalysisPress: function() {
-      var oView = this.getView();
-      var oStrategyModel = oView.getModel("strategyAnalysisModel");
-      var oResultModel = oView.getModel("strategyResultModel");
-      var sSymbol = oView.byId("symbolSelector").getSelectedKey();
+    onRunAnalysisPress: async function() {
+        var oView = this.getView();
+        var oStrategyModel = oView.getModel("strategyAnalysisModel");
+        var oResultModel = oView.getModel("strategyResultModel");
+        var sSymbol = oView.byId("symbolSelector").getSelectedKey();
 
-      // Validaciones
-      if (!this._validateAnalysisInputs(oStrategyModel, sSymbol)) return;
+        // Validaciones
+        if (!this._validateAnalysisInputs(oStrategyModel, sSymbol)) return;
 
-      // Configurar y llamar API
-      this._callAnalysisAPISimulation(sSymbol, oStrategyModel, oResultModel);
+        const oViewModel = this.getView().getModel("viewModel");
+        oViewModel.setProperty("/analysisPanelExpanded", false);
+        oViewModel.setProperty("/resultPanelExpanded", true);
+        
+        oResultModel.setProperty("/isLoading", true);
+        oResultModel.setProperty("/hasResults", false);
+
+        try {
+            await this._callAnalysisAPISimulation(sSymbol, oStrategyModel, oResultModel);
+        } catch (error) {
+            MessageBox.error("Error al procesar la simulación");
+            oViewModel.setProperty("/analysisPanelExpanded", true);
+            oViewModel.setProperty("/resultPanelExpanded", false);
+        } finally {
+            
+        }
+
+
     },
 
     _validateAnalysisInputs: function(oStrategyModel, sSymbol) {
@@ -219,7 +237,7 @@ sap.ui.define([
       return true;
     },
 
-    _callAnalysisAPISimulation: function(sSymbol, oStrategyModel, oResultModel) {
+    _callAnalysisAPISimulation: async function(sSymbol, oStrategyModel, oResultModel) {
       var oRequestBody = {
         "SIMULATION": {
             "SYMBOL": sSymbol,
@@ -239,17 +257,26 @@ sap.ui.define([
             ]
         }
     };
-      fetch(this._CONSTANTS.URL_SIMULATION, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(oRequestBody)
-      })
-      .then(response => response.ok ? response.json() : Promise.reject(response))
-      .then(data => this._handleAnalysisResponse(data.value[0], oStrategyModel, oResultModel))
-      .catch(error => {
+      try {
+        const response = await fetch(this._CONSTANTS.URL_SIMULATION, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(oRequestBody)
+        });
+
+        if (!response.ok) {
+            throw new Error("Error en la respuesta del servidor");
+        }
+
+        const data = await response.json();
+        await this._handleAnalysisResponse(data.value[0], oStrategyModel, oResultModel);
+        
+        // Quitar el loading solo después de procesar los datos
+        oResultModel.setProperty("/isLoading", false);
+    } catch (error) {
         console.error("Error:", error);
-        MessageBox.error("Error al obtener datos de simulación");
-      });
+        throw error;
+    }
     },
 
     _handleAnalysisResponse: function(data, oStrategyModel, oResultModel) {
@@ -266,9 +293,17 @@ sap.ui.define([
             signals: data.SIGNALS || [],
             result: data.SUMMARY?.REAL_PROFIT || 0,
             simulationName: "Moving Average Crossover",
-            symbol: oStrategyModel.getProperty("/symbol"),
+            symbol: data.SYMBOL,
             startDate: oStrategyModel.getProperty("/startDate"),
-            endDate: oStrategyModel.getProperty("/endDate")
+            endDate: oStrategyModel.getProperty("/endDate"),
+            TOTAL_BOUGHT_UNITS: data.SUMMARY?.TOTAL_BOUGHT_UNITS || 0,
+            TOTAL_SOLD_UNITS: data.SUMMARY?.TOTAL_SOLD_UNITS || 0,
+            REMAINING_UNITS: data.SUMMARY?.REMAINING_UNITS || 0,
+            FINAL_CASH: data.SUMMARY?.FINAL_CASH || 0,
+            FINAL_VALUE: data.SUMMARY?.FINAL_VALUE || 0,
+            FINAL_BALANCE: data.SUMMARY?.FINAL_BALANCE || 0,
+            REAL_PROFIT: data.SUMMARY?.REAL_PROFIT || 0,
+            PERCENTAGE_RETURN: data.SUMMARY?.PERCENTAGE_RETURN || 0
         });
 
         // Actualizar balance
@@ -584,6 +619,14 @@ sap.ui.define([
             simulationName: simulationDetail.SIMULATIONNAME,
             startDate: new Date(simulationDetail.STARTDATE), // Convertir a Date
             endDate: new Date(simulationDetail.ENDDATE),     // Convertir a Date
+            TOTAL_BOUGHT_UNITS: simulationDetail.SUMMARY?.TOTAL_BOUGHT_UNITS || 0,
+            TOTAL_SOLD_UNITS: simulationDetail.SUMMARY?.TOTAL_SOLD_UNITS || 0,
+            REMAINING_UNITS: simulationDetail.SUMMARY?.REMAINING_UNITS || 0,
+            FINAL_CASH: simulationDetail.SUMMARY?.FINAL_CASH || 0,
+            FINAL_VALUE: simulationDetail.SUMMARY?.FINAL_VALUE || 0,
+            FINAL_BALANCE: simulationDetail.SUMMARY?.FINAL_BALANCE || 0,
+            REAL_PROFIT: simulationDetail.SUMMARY?.REAL_PROFIT || 0,
+            PERCENTAGE_RETURN: simulationDetail.SUMMARY?.PERCENTAGE_RETURN || 0,
             originalData: simulationDetail // Guardar copia completa por si se necesita
         });
         
@@ -614,50 +657,63 @@ sap.ui.define([
     },
 
 onDeleteSelected: function() {
-    const oTable = sap.ui.getCore().byId("historyTable");
+    const oTable = sap.ui.getCore().byId("historyTable"); // Mejor usa this.byId() en lugar de sap.ui.getCore().byId()
     const aSelectedItems = oTable.getSelectedItems();
     
     if (!aSelectedItems.length) {
-        MessageToast.show("Selecciona al menos una estrategia para eliminar");
+        MessageToast.show("Selecciona al menos una simulación para eliminar");
         return;
     }
 
-    MessageBox.confirm("¿Desea eliminar las estrategias seleccionadas?", {
+    const sMessage = aSelectedItems.length === 1 
+        ? "¿Deseas eliminar la simulación seleccionada?" 
+        : `¿Deseas eliminar las ${aSelectedItems.length} simulaciones seleccionadas?`;
+
+    MessageBox.confirm(sMessage, {
+        title: "Confirmar eliminación",
         onClose: async function(oAction) {
             if (oAction === MessageBox.Action.OK) {
                 try {
                     sap.ui.core.BusyIndicator.show(0);
                     
-                    // Get simulation ID
-                    const oSelectedItem = aSelectedItems[0];
-                    const oContext = oSelectedItem.getBindingContext("historyModel");
-                    const oData = oContext.getObject();
-                    const sSimulationId = oData.details.SIMULATIONID;
+                    // Obtener todos los IDs seleccionados
+                    const aSimulationIds = aSelectedItems.map(oItem => {
+                        return oItem.getBindingContext("historyModel").getObject().details.SIMULATIONID;
+                    });
 
-                    const response = await fetch("http://localhost:3033/api/inv/deleteSimulation", {
+                    // Llamar al endpoint de delete múltiple
+                    const response = await fetch("http://localhost:3033/api/inv/deleteSimulations", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
-                            idSimulation: sSimulationId,
-                            idUser: "ARAMIS"
+                            userID: "ARAMIS",  // Hardcodeado como en tu ejemplo, pero idealmente usa el user real
+                            simulationIDs: aSimulationIds
                         })
                     });
 
                     if (!response.ok) {
                         const errorData = await response.json();
-                        throw new Error(errorData.message || "Error al eliminar");
+                        throw new Error(errorData.message || "Error al eliminar las simulaciones");
                     }
 
+                    // Recargar datos y actualizar UI
                     await this._loadHistoryData();
-                    MessageToast.show("Estrategia eliminada correctamente");
                     
+                    // Mensaje de éxito personalizado
+                    const sSuccessMessage = aSimulationIds.length === 1
+                        ? "Simulación eliminada correctamente"
+                        : `${aSimulationIds.length} simulaciones eliminadas correctamente`;
+                    
+                    MessageToast.show(sSuccessMessage);
+
+                    // Resetear modo de eliminación
                     const oModel = this.getView().getModel("historyModel");
                     oModel.setProperty("/isDeleteMode", false);
                     oModel.setProperty("/selectedCount", 0);
 
                 } catch (error) {
                     console.error("Error detallado:", error);
-                    MessageBox.error(error.message || "Error al eliminar la estrategia");
+                    MessageBox.error(error.message || "Error al eliminar las simulaciones");
                 } finally {
                     sap.ui.core.BusyIndicator.hide();
                 }
@@ -943,6 +999,18 @@ onStrategyNameBlur: function(oEvent) {
             this._oHistoryPopover.destroy();
             this._oHistoryPopover = null;
         }
+    },
+
+    formatNumber: function(value) {
+        if (!value) return "0";
+        
+        const oNumberFormat = NumberFormat.getFloatInstance({
+            maxFractionDigits: 2,
+            minFractionDigits: 2,
+            groupingEnabled: true
+        });
+        
+        return oNumberFormat.format(value);
     },
   });
 });
