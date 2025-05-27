@@ -9,15 +9,15 @@
         resizable="true"
     >
         <VBox id="EditUserDialogVbox" class="sapUiSmallMargin">
-            <Input id="inputEditUserId" placeholder="ID de Usuario"/>
+            <Input id="inputEditUserId" placeholder="ID de Usuario (texto)" value="{editUserModel>/USERID}" editable="false"/>
 
-            <Input id="inputEditUsername" placeholder="Nombre Completo"/>
+            <Input id="inputEditUsername" placeholder="Nombre Completo (texto)" value="{editUserModel>/USERNAME}" />
             
-            <Input id="inputEditUserPhoneNumber" type="Number" placeholder="Número telefónico"/>
+            <Input id="inputEditUserPhoneNumber" placeholder="Número telefónico (texto)" value="{editUserModel>/PHONENUMBER}" />
 
-            <Input id="inputEditUserEmail" type="Email" placeholder="Correo Electrónico"/>
+            <Input id="inputEditUserEmail" placeholder="Correo Electrónico (texto)" value="{editUserModel>/EMAIL}" />
 
-            <DatePicker id="inputEditUserBirthdayDate" placeholder="Fecha de nacimiento"/>
+            <DatePicker id="inputEditUserBirthdayDate" placeholder="Fecha de nacimiento (YYYY-MM-DD)" value="{editUserModel>/BIRTHDAYDATE}" />
 
             <ComboBox id="comboBoxEditCompanies" items="{/companies}" selectionChange="onCompanySelected" placeholder="Compañía">
                 <core:Item id="EditCompanyItem" key="{COMPANYID}" text="{COMPANYNAMME}" />
@@ -27,8 +27,8 @@
                 <core:Item id="EditCediItem" key="{CEDIID}" text="{CEDINAME}" />
             </ComboBox>
 
-            <ComboBox id="comboBoxEditRoles" items="{/roles}" selectionChange="onRoleSelected" placeholder="Selecciona un Rol">
-                <core:Item id="EditRoleItem" key="{ROLEID}" text="{ROLENAME}" />
+            <ComboBox id="comboBoxEditRoles" items="{roles>/roles}" selectionChange="onRoleSelected" placeholder="Selecciona un Rol">
+                <core:Item key="{roles>ROLEID}" text="{roles>ROLENAME}" />
             </ComboBox>
             
             <VBox id="selectedEditRolesVBox" class="sapUiSmallMarginTop">

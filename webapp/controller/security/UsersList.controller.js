@@ -17,6 +17,7 @@ sap.ui.define([
 // @ts-ignore
 // @ts-ignore
 // @ts-ignore
+// @ts-ignore
 ], function(BaseController,JSONModel,Log,Fragment,MessageToast,MessageBox){
     "use strict";
 
@@ -45,6 +46,7 @@ sap.ui.define([
         loadUsers: function () {
             var oTable = this.byId("IdTable1UsersManageTable");
             var oModel = new sap.ui.model.json.JSONModel();
+            // @ts-ignore
             // @ts-ignore
             // @ts-ignore
             // @ts-ignore
@@ -308,27 +310,141 @@ sap.ui.define([
          */
         onEditUser: function() {
             var oView = this.getView();
+            var oSelected = this.selectedUser;
+            if (!oSelected) {
+                MessageToast.show("Selecciona un usuario para editar.");
+                return;
+            }
+
+            // Prepara el modelo para edición (copia profunda)
+            var oEditUserModel = new sap.ui.model.json.JSONModel(JSON.parse(JSON.stringify(oSelected)));
+            oView.setModel(oEditUserModel, "editUserModel");
 
             if (!this._oEditUserDialog) {
-                Fragment.load({
+                sap.ui.core.Fragment.load({
                     id: oView.getId(),
                     name: "com.invertions.sapfiorimodinv.view.security.fragments.EditUserDialog",
                     controller: this
-                }).then(oDialog => {
+                }).then(function(oDialog) {
                     this._oEditUserDialog = oDialog;
                     oView.addDependent(oDialog);
+                    // @ts-ignore
+                    this.loadRoles(); // Si quieres recargar roles
                     this._oEditUserDialog.open();
-                });
+                    // @ts-ignore
+                    this._fillEditRolesVBox();
+                }.bind(this));
             } else {
+                this.loadRoles();
                 this._oEditUserDialog.open();
+                this._fillEditRolesVBox();
             }
-            
         },
 
-        onEditSaveUser: function(){
-            //Aquí la lógica para agregar la info actualizada del usuario en la bd
+        // ============= LLENAR LOS ROLES SELECCIONADOS EN EDICIÓN =============
+        _fillEditRolesVBox: function() {
+            var oVBox = this.getView().byId("selectedEditRolesVBox");
+            oVBox.removeAllItems();
+            var oEditUserModel = this.getView().getModel("editUserModel");
+            var aRoles = oEditUserModel.getProperty("/ROLES") || [];
+            var oRolesModel = this.getView().getModel("roles");
+            var aAllRoles = oRolesModel ? oRolesModel.getProperty("/roles") : [];
+
+            aRoles.forEach(function(role) {
+                var roleName = (aAllRoles.find(r => r.ROLEID === role.ROLEID) || {}).ROLENAME || role.ROLEID;
+                var oHBox = new sap.m.HBox({
+                    items: [
+                        new sap.m.Label({ text: roleName }).addStyleClass("sapUiSmallMarginEnd"),
+                        // @ts-ignore
+                        new sap.m.Button({
+                            icon: "sap-icon://decline",
+                            type: "Transparent",
+                            press: function() {
+                                oVBox.removeItem(oHBox);
+                            }
+                        })
+                    ]
+                });
+                oHBox.data("roleId", role.ROLEID);
+                oVBox.addItem(oHBox);
+            });
         },
 
+        // ============= GUARDAR EDICIÓN DE USUARIO =============
+        onEditSaveUser: function() {
+            var that = this;
+            var oDialog = this._oEditUserDialog;
+            var oModel = this.getView().getModel("editUserModel");
+            var oData = oModel.getData();
+
+            // Formateo de datos igual que en alta
+            if (oData.BIRTHDAYDATE) {
+                if (oData.BIRTHDAYDATE instanceof Date) {
+                    oData.BIRTHDAYDATE = oData.BIRTHDAYDATE.toISOString();
+                } else if (typeof oData.BIRTHDAYDATE === "string" && oData.BIRTHDAYDATE.match(/^\d{4}-\d{2}-\d{2}/)) {
+                    oData.BIRTHDAYDATE = new Date(oData.BIRTHDAYDATE).toISOString();
+                } else {
+                    var parts = oData.BIRTHDAYDATE.split("/");
+                    if (parts.length === 3) {
+                        var year = parts[2].length === 2 ? "20" + parts[2] : parts[2];
+                        var dateObj = new Date(year, parts[1] - 1, parts[0]);
+                        oData.BIRTHDAYDATE = dateObj.toISOString();
+                    }
+                }
+            }
+            if (oData.EMPLOYEEID) oData.EMPLOYEEID = Number(oData.EMPLOYEEID) || undefined;
+            if (oData.POSTALCODE) oData.POSTALCODE = Number(oData.POSTALCODE) || undefined;
+            if (oData.COMPANYID) oData.COMPANYID = Number(oData.COMPANYID) || undefined;
+
+            // Roles seleccionados
+            var oVBox = this.getView().byId("selectedEditRolesVBox");
+            var aRoles = oVBox.getItems().map(function(oItem) {
+                return { ROLEID: oItem.data("roleId") };
+            });
+            oData.ROLES = aRoles;
+
+            // Validación básica
+            if (!oData.USERID || !oData.EMAIL) {
+                // @ts-ignore
+                sap.m.MessageBox.warning("Por favor, completa al menos el ID de usuario y el correo electrónico.");
+                return;
+            }
+
+            // Enviar a la API
+            fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=put&userid=" + encodeURIComponent(oData.USERID), {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(oData)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && !data.error) {
+                    // @ts-ignore
+                    sap.m.MessageToast.show("Usuario editado correctamente");
+                    that.loadUsers();
+                    if (oDialog) oDialog.close();
+                } else {
+                    let msg = "No se pudo editar el usuario.";
+                    if (data && data.message) msg = data.message;
+                    if (data && data.errors) {
+                        msg += "\n";
+                        Object.keys(data.errors).forEach(function(field) {
+                            msg += "\n" + field + ": " + data.errors[field].message;
+                        });
+                    }
+                    // @ts-ignore
+                    sap.m.MessageBox.error("Error al editar usuario: " + msg);
+                }
+            })
+            .catch(err => {
+                // @ts-ignore
+                sap.m.MessageBox.error("Error de red al editar usuario: " + err.message);
+            });
+        },
+
+        // ============= CANCELAR EDICIÓN =============
         onEditCancelUser: function(){
             if (this._oEditUserDialog) {
                 this._oEditUserDialog.close();
