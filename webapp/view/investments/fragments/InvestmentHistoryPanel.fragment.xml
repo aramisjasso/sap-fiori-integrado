@@ -8,6 +8,7 @@
         showHeader="true"
         contentWidth="1100px"
         contentHeight="auto"
+        modal="true"
         class="">
         <content>
             <!-- Barra de búsqueda y filtros -->
@@ -94,7 +95,8 @@
                     growing="true"
                     growingThreshold="10"
                     sticky="ColumnHeaders"
-                    selectionChange=".onSelectionChange">                    
+                    selectionChange=".onSelectionChange"
+                    >                    
                     <columns>
                         <Column width="30%" minScreenWidth="Tablet" demandPopin="true">
                             <Text text="Nombre"/>
@@ -116,12 +118,23 @@
                     <items>
                         <ColumnListItem type="Active">
                             <cells>
-                                <Input
-                                    value="{historyModel>strategyName}"
-                                    editable="true"
-                                    liveChange=".onStrategyNameChange"
-                                    submit=".onStrategyNameSubmit"
-                                    tooltip="Click para editar"/>
+                                <HBox alignItems="Center" Click=".onclickds">
+                                    <Input
+                                        value="{historyModel>strategyName}"
+                                        editable="false"
+                                        liveChange=".onStrategyNameChange"
+                                        submit=".onStrategyNameSubmit"
+                                        tooltip="Click para editar">
+                                        <layoutData>
+                                            <FlexItemData growFactor="1"/>
+                                        </layoutData>
+                                    </Input>
+                                    <Button 
+                                        icon="sap-icon://edit"
+                                        type="Transparent"
+                                        press=".onStrategyNameClick"
+                                        tooltip="Editar nombre"/>
+                                </HBox>
                                 <Text text="{
                                     path: 'historyModel>details/STRATEGY',
                                     formatter: '.formatStrategyType'

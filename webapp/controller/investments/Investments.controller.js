@@ -661,15 +661,21 @@ onDeleteSelected: function() {
 },
 
 onStrategyNameClick: function(oEvent) {
-    const oInput = oEvent.getSource();
-    oInput.setEditable(true);
+    // Obtener el Input que está junto al botón
+    const oButton = oEvent.getSource();
+    const oInput = oButton.getParent().getItems()[0]; // El Input es el primer elemento del HBox
     
-    // Dar foco al input después de hacerlo editable
-    setTimeout(() => {
-        oInput.focus();
-        // Seleccionar todo el texto
-        oInput.selectText(0, oInput.getValue().length);
-    }, 100);
+    // Solo hacer editable si no lo está ya
+    if (!oInput.getEditable()) {
+        oInput.setEditable(true);
+        
+        // Dar foco al input después de hacerlo editable
+        setTimeout(() => {
+            oInput.focus();
+            // Seleccionar todo el texto
+            oInput.selectText(0, oInput.getValue().length);
+        }, 100);
+    }
 },
 
 onStrategyNameChange: function(oEvent) {
@@ -687,27 +693,62 @@ onStrategyNameChange: function(oEvent) {
     oInput.setValueState("None");
 },
 
-onStrategyNameSubmit: function(oEvent) {
+onStrategyNameSubmit: async function(oEvent) {
     const oInput = oEvent.getSource();
     const sNewValue = oEvent.getParameter("value");
     const sPath = oInput.getBindingContext("historyModel").getPath();
     
-    // Validate and save
+    // Validar nombre vacío
     if (!sNewValue.trim()) {
         MessageToast.show("El nombre no puede estar vacío");
         return;
     }
-    
-    // Update model
-    this.getView().getModel("historyModel").setProperty(sPath + "/strategyName", sNewValue.trim());
-    
-    // Exit edit mode
-    oInput.setEditable(false);
-    
-    // Optional: Save to backend/localStorage
-    this._saveStrategiesToLocalStorage();
-    
-    MessageToast.show("Nombre actualizado correctamente");
+
+    try {
+        // Obtener el ID de simulación del contexto
+        const oContext = oInput.getBindingContext("historyModel");
+        const oData = oContext.getObject();
+        const sSimulationId = oData.details.SIMULATIONID;
+
+        // Mostrar indicador de carga
+        sap.ui.core.BusyIndicator.show(0);
+
+        // Llamar a la API
+        const response = await fetch("http://localhost:3033/api/inv/updatesimulation", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                id: sSimulationId,
+                simulationName: sNewValue.trim()
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Error al actualizar el nombre");
+        }
+
+        // Actualizar modelo local
+        this.getView().getModel("historyModel").setProperty(sPath + "/strategyName", sNewValue.trim());
+        
+        // Desactivar edición
+        oInput.setEditable(false);
+        oInput.setValueState("None");
+        
+        // Mostrar mensaje de éxito
+        MessageToast.show("Nombre actualizado correctamente");
+
+        // Opcional: Recargar datos para asegurar sincronización
+        await this._loadHistoryData();
+
+    } catch (error) {
+        console.error("Error:", error);
+        MessageBox.error(error.message || "Error al actualizar el nombre");
+        oInput.setValueState("Error");
+        oInput.setValueStateText(error.message || "Error al actualizar");
+    } finally {
+        sap.ui.core.BusyIndicator.hide();
+    }
 },
 
 
