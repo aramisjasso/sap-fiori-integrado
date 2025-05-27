@@ -77,6 +77,13 @@
                 pressed="{historyModel>/isDeleteMode}"
                 press=".onToggleDeleteMode"/>
             <Button
+                icon="sap-icon://edit"
+                text="Editar Seleccionado"
+                type="Transparent"
+                visible="{= !${historyModel>/isDeleteMode}}"
+                press=".onEditSelected"
+                enabled="{= ${historyModel>/selectedItem} !== null }"/>
+            <Button
                 icon="sap-icon://delete"
                 text="Eliminar Seleccionados"
                 type="Transparent"
@@ -118,23 +125,15 @@
                     <items>
                         <ColumnListItem type="Active">
                             <cells>
-                                <HBox alignItems="Center" Click=".onclickds">
-                                    <Input
-                                        value="{historyModel>strategyName}"
-                                        editable="false"
-                                        liveChange=".onStrategyNameChange"
-                                        submit=".onStrategyNameSubmit"
-                                        tooltip="Click para editar">
-                                        <layoutData>
-                                            <FlexItemData growFactor="1"/>
-                                        </layoutData>
-                                    </Input>
-                                    <Button 
-                                        icon="sap-icon://edit"
-                                        type="Transparent"
-                                        press=".onStrategyNameClick"
-                                        tooltip="Editar nombre"/>
-                                </HBox>
+                                <Input
+                                    value="{historyModel>strategyName}"
+                                    editable="false" 
+                                    liveChange=".onStrategyNameChange"
+                                    submit=".onStrategyNameSubmit"
+                                    tooltip="Haz clic para editar"
+                                    change="onStrategyNameBlur">
+                                
+                                </Input>
                                 <Text text="{
                                     path: 'historyModel>details/STRATEGY',
                                     formatter: '.formatStrategyType'

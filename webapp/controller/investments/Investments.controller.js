@@ -82,7 +82,8 @@ sap.ui.define([
           strategies: [],       // Aquí irán las estrategias dinámicas
           filteredCount: 0,    
           selectedCount: 0,
-          isDeleteMode: false,    
+          isDeleteMode: false,
+          selectedItem: null,    
           filters: {
               dateRange: null,
               investmentRange: [0, 10000],
@@ -488,6 +489,11 @@ sap.ui.define([
                 oItem.getBindingContext("historyModel").getObject() : 
                 null;
         }
+
+            // Actualizar el modelo con el ítem seleccionado
+            const oSelectedItem = oEvent.getParameter("listItem");
+            this.getView().getModel("historyModel").setProperty("/selectedItem", 
+                oSelectedItem ? oSelectedItem.getBindingContext("historyModel").getObject() : null);
     },
 
     onLoadStrategy: async function() {
@@ -661,21 +667,30 @@ onDeleteSelected: function() {
 },
 
 onStrategyNameClick: function(oEvent) {
-    // Obtener el Input que está junto al botón
-    const oButton = oEvent.getSource();
-    const oInput = oButton.getParent().getItems()[0]; // El Input es el primer elemento del HBox
+    // Crear un Input temporal
+    const oIdentifier = oEvent.getSource();
+    const sCurrentValue = oIdentifier.getTitle();
     
-    // Solo hacer editable si no lo está ya
-    if (!oInput.getEditable()) {
-        oInput.setEditable(true);
-        
-        // Dar foco al input después de hacerlo editable
-        setTimeout(() => {
-            oInput.focus();
-            // Seleccionar todo el texto
-            oInput.selectText(0, oInput.getValue().length);
-        }, 100);
-    }
+    // Crear Input
+    const oInput = new sap.m.Input({
+        value: sCurrentValue,
+        valueLiveUpdate: true,
+        submit: function(oEvent) {
+            const sNewValue = oEvent.getParameter("value");
+            if (sNewValue && sNewValue.trim()) {
+                oIdentifier.setTitle(sNewValue);
+                // Aquí iría tu lógica de guardado
+                this.onStrategyNameSubmit(oEvent);
+            }
+            oInput.destroy();
+            oIdentifier.setVisible(true);
+        }.bind(this)
+    });
+
+    // Ocultar identificador y mostrar input
+    oIdentifier.setVisible(false);
+    oInput.placeAt(oIdentifier.getParent().getId());
+    oInput.focus();
 },
 
 onStrategyNameChange: function(oEvent) {
@@ -751,6 +766,55 @@ onStrategyNameSubmit: async function(oEvent) {
     }
 },
 
+onEditSelected: function() {
+    const oTable = sap.ui.getCore().byId("historyTable");
+    const aSelectedItems = oTable.getSelectedItems();
+    
+    if (aSelectedItems.length !== 1) {
+        MessageToast.show("Selecciona una estrategia para editar");
+        return;
+    }
+
+    const aAllItems = oTable.getItems();
+    aAllItems.forEach(item => {
+        const oInput = item.getCells()[0];
+        oInput.setEditable(false);
+        oInput.setValueState("None");
+    });
+
+    const oSelectedItem = aSelectedItems[0];
+    const oInput = oSelectedItem.getCells()[0]; // Get Input directly from cell
+    
+    // Hacer editable el input
+    oInput.setEditable(true);
+    
+    // Dar foco y seleccionar texto
+    setTimeout(() => {
+        oInput.focus();
+        oInput.selectText(0, oInput.getValue().length);
+    }, 100);
+},
+
+onStrategyNameBlur: function(oEvent) {
+    const oInput = oEvent.getSource();
+    
+    if (oInput.getEditable()) {
+        const sNewValue = oInput.getValue();
+        const oContext = oInput.getBindingContext("historyModel");
+        const sOriginalValue = oContext.getObject().strategyName;
+        
+        if (sNewValue && sNewValue.trim()) {
+            this.onStrategyNameSubmit(oEvent);
+        } else {
+            // Si está vacío, revertir al valor original del modelo
+            oInput.setValue(sOriginalValue);
+        }
+        
+        // Desactivar edición
+        oInput.setEditable(false);
+        oInput.setValueState("None");
+    }
+},
 
     // ******** FILTRO ********** //
     onToggleAdvancedFilters: function() {
