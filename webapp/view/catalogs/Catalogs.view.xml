@@ -31,7 +31,7 @@
                             <ToolbarSpacer />
                             <SearchField
                                 width="20rem"
-                                id="searchField"
+                                id="searchField2"
                                 placeholder="Buscar en todos los campos..."
                                 liveChange="onFilterChange"
                                 showSearchButton="false"
@@ -73,6 +73,15 @@
                                 enabled="false"
                                 type="Reject"
                             />
+                            <HBox>
+                                <Button
+                                    icon="sap-icon://navigation-right-arrow"
+                                    type="Default"
+                                    tooltip="Ver detalle"
+                                    press="onCenterDetailPanel"
+                                    class="sapUiTinyMarginEnd"
+                                />
+                            </HBox>
                         </OverflowToolbar>
                         <Table
                             id="catalogTable"

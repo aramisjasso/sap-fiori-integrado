@@ -7,7 +7,13 @@
   xmlns:rowmodes="sap.ui.table.rowmodes"
   >
     <m:Toolbar design="Transparent" class="customRoleToolbar">
-      <m:Button text="Crear" icon="sap-icon://add" type="Accept" press=".onOpenDialog" />
+
+    <m:Button text="Crear" icon="sap-icon://add" type="Accept" press=".onOpenDialog" />
+    <m:Button text="Editar" icon="sap-icon://edit" type="Emphasized" press=".onEditRole" />
+    <m:Button text="Desactivar" icon="sap-icon://cancel" type="Attention" press=".onDesactivateRole" />
+    <m:Button text="Activar" icon="sap-icon://accept" type="Accept" press=".onActivateRole" />
+    <m:Button text="Eliminar" icon="sap-icon://delete" type="Reject" press=".onDeleteRole" />
+
 
       <m:SearchField id="searchRoleName" width="25rem" placeholder="Buscar roles..." liveChange=".onMultiSearch" />
 
@@ -16,7 +22,9 @@
 
     </m:Toolbar>
 
-    <tl:Table id="rolesTable" rows="{roles>/value}" selectionMode="Single" selectionBehavior="RowOnly" rowSelectionChange=".onRoleSelected" enableColumnReordering="true" alternateRowColors="true" rowActionCount="2" width="100%">
+    <tl:Table id="rolesTable" rows="{roles>/value}" selectionMode="Single" 
+    selectionBehavior="RowOnly" rowSelectionChange=".onRoleSelected" 
+    enableColumnReordering="true" alternateRowColors="true" rowActionCount="2" width="100%">
 
       <tl:rowMode>
         <rowmodes:Fixed rowCount="20" />

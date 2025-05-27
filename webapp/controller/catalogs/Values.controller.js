@@ -22,7 +22,20 @@ sap.ui.define([
                 values: [],       // Datos de la tabla
                 selectedValueIn: null  // 🔥 Para controlar los botones
             }), "values");
-
+            this.getView().setModel(
+            new JSONModel({
+              values: [],
+              AllValues: null,
+            }),
+            "values"
+          );
+          this.getView().setModel(
+            new JSONModel({
+              values: [],
+              AllLabels: null,
+            }),
+            "values"
+          );
             // Modelo para los datos del formulario
             this.getView().setModel(new JSONModel({
                 VALUEID: "",
@@ -34,26 +47,74 @@ sap.ui.define([
             }), "newValueModel");
         },
         // Método para cargar los valores en el modelo
-        loadValues: function (aValues) {
-            this.getView().getModel("values").setProperty("/values", aValues || []);
+        loadValues: function (aFilteredValues, aAllValues, oAllLabels) {
+          this.getView()
+            .getModel("values")
+            .setProperty("/values", aFilteredValues || []);
+          this.getView()
+            .getModel("values")
+            .setProperty("/AllValues", aAllValues || []);
+          this.getView()
+            .getModel("values")
+            .setProperty("/AllLabels", oAllLabels || []);
+        },
+        onLabelIdChange: function (oEvent) {
+          var sSelectedLabelId = oEvent.getParameter("selectedItem").getKey();
+          var oView = this.getView();
+
+          var aAllValues =
+            oView.getModel("values").getProperty("/AllValues") || [];
+          var aFiltered = aAllValues.filter(function (oValue) {
+            return oValue.LABELID === sSelectedLabelId;
+          });
+
+          oView.getModel("values").setProperty("/FilteredValues", aFiltered);
+
+          // Limpia el VALUEPAID seleccionado si deseas reiniciar el segundo combobox
+          oView.getModel("newValueModel").setProperty("/VALUEPAID", "");
         },
         // Método para abrir el diálogo de selección de valores
         onItemSelect: function (oEvent) {
             var oItem = oEvent.getParameter("listItem");
             var oSelectedData = oItem.getBindingContext("values").getObject();
-            // Actualiza el modelo newValueModel con los datos seleccionados
+
+            var sParentValueId = "";
+            var sParentLabelId = "";
+            if (oSelectedData.VALUEPAID) {
+                var aParts = oSelectedData.VALUEPAID.split("-");
+                sParentLabelId = aParts.length > 1 ? aParts[0] : "";
+                sParentValueId = aParts.length > 1 ? aParts[1] : "";
+            }
+
+            // Setear valores seleccionados
             this.getView().getModel("newValueModel").setProperty("/", {
                 VALUEID: oSelectedData.VALUEID,
                 VALUE: oSelectedData.VALUE,
-                VALUEPAID: oSelectedData.VALUEPAID,
+                ValuePaid1: sParentLabelId,
                 ALIAS: oSelectedData.ALIAS,
                 IMAGE: oSelectedData.IMAGE,
-                DESCRIPTION: oSelectedData.DESCRIPTION
+                DESCRIPTION: oSelectedData.DESCRIPTION,
             });
 
-            // Activa el modo de edición
-            this.getView().getModel("values").setProperty("/selectedValueIn", true);
+            // Filtrar valores del ComboBox 2
+            var aAllValues = this.getView().getModel("values").getProperty("/AllValues") || [];
+            var aFiltered = aAllValues.filter(function (oValue) {
+                return oValue.LABELID === sParentLabelId;
+            });
+            this.getView().getModel("values").setProperty("/FilteredValues", aFiltered);
+
+            // Espera a que se rendericen los items para asignar selectedKey
+            this.getView().getModel("newValueModel").setProperty("/ValuePaid2", sParentValueId);
+            // this.byId("valueIdComboBox2").setSelectedKey(sParentValueId);
+
+            // Guardar el LABELID seleccionado
+            this.getView().getModel("values").setProperty("/selectedValue", {
+                LABELID: oSelectedData.LABELID
+            });
+
+            this.getView().getModel("values").setProperty("/selectedValueIn", oSelectedData);
         },
+
         // Método para esditar el nuevo valor
         onEditValue: function () {
             var oView = this.getView();
@@ -69,38 +130,33 @@ sap.ui.define([
                 MessageToast.show("VALUEID y VALUE son campos obligatorios");
                 return;
             }
-
+            var ValuePaid = `${oFormData.ValuePaid1}-${oFormData.ValuePaid2}`;
             // Construir objeto con todos los parámetros
             var oParams = {
-                COMPANYID: 0,
-                CEDIID: 0,
+                value:{
+                COMPANYID: "0",
+                CEDIID: "0",
                 LABELID: oSelectedCatalog.LABELID,
-                VALUEPAID: oFormData.VALUEPAID || "",
+                VALUEPAID: ValuePaid!="-" ? ValuePaid : "",
                 VALUEID: oFormData.VALUEID,
                 VALUE: oFormData.VALUE,
                 ALIAS: oFormData.ALIAS || "",
                 SEQUENCE: 30,
                 IMAGE: oFormData.IMAGE || "",
-                VALUESAPID: "",
                 DESCRIPTION: oFormData.DESCRIPTION || "",
-                ROUTE: "",
+                ACTIVED: true,
+                REGUSER: "MIGUEL",
                 // Estructura anidada para DETAIL_ROW
-                "DETAIL_ROW": {
-                    "ACTIVED": true,
-                    "DELETED": false
-                },
-                "DETAIL_ROW_REG": [
-
-                ]
+            }
             };
-
             // Configurar llamada AJAX con GET
             oView.setBusy(true);
 
             $.ajax({
-                url: `http://localhost:4004/api/sec/valuesCRUD?procedure=put`,
-                data: oParams,
-                method: "GET",
+                url: `http://localhost:3033/api/catalogos/updateLabel?type=2`,
+                contentType: "application/json",
+                data: JSON.stringify(oParams),
+                method: "POST",
                 success: function (response) {
                     oView.setBusy(false);
                     MessageToast.show("Valor guardado correctamente");
@@ -146,13 +202,13 @@ sap.ui.define([
                 MessageToast.show("VALUEID y VALUE son campos obligatorios");
                 return;
             }
-
+            var ValuePaid = `${oFormData.ValuePaid1}-${oFormData.ValuePaid2}`;
             // Construir objeto con todos los parámetros
             var oParams = {
                 COMPANYID: 0,
                 CEDIID: 0,
                 LABELID: oSelectedCatalog.LABELID,
-                VALUEPAID: oFormData.VALUEPAID || "",
+                VALUEPAID: ValuePaid || "",
                 VALUEID: oFormData.VALUEID,
                 VALUE: oFormData.VALUE,
                 ALIAS: oFormData.ALIAS || "",
@@ -195,7 +251,7 @@ sap.ui.define([
                     currentValues.push({
                         VALUEID: oFormData.VALUEID,
                         VALUE: oFormData.VALUE,
-                        VALUEPAID: oFormData.VALUEPAID,
+                        VALUEPAID: ValuePaid,
                         ALIAS: oFormData.ALIAS,
                         IMAGE: oFormData.IMAGE,
                         DESCRIPTION: oFormData.DESCRIPTION,
@@ -246,12 +302,12 @@ sap.ui.define([
             });
         },*/
         StatusValueDecline: function () {
-            this.StatusValue(false, true, "delete");
+            this.StatusValue(true);
         },
         StatusValueAccept: function () {
-            this.StatusValue(true, false, "actived");
+            this.StatusValue(false);
         },
-        StatusValue: function (aceptar, rechazar, type) {
+        StatusValue: function (aceptar) {
             var oView = this.getView();
             var oNewValueModel = oView.getModel("newValueModel");
             var oValuesModel = oView.getModel("values");
@@ -261,30 +317,23 @@ sap.ui.define([
             var oSelectedCatalog = oValuesModel.getProperty("/selectedValue");
 
             // Validaciones
-            if (!oFormData.VALUEID || !oFormData.VALUE) {
-                MessageToast.show("VALUEID y VALUE son campos obligatorios");
+            if (!oFormData.VALUEID) {
+                MessageToast.show("VALUEID son campos obligatorios");
                 return;
             }
 
             // Construir objeto con todos los parámetros
-            var oParams = {
-                // Estructura anidada para DETAIL_ROW
-                "DETAIL_ROW": {
-                    "ACTIVED": aceptar,
-                    "DELETED": rechazar
-                },
-            };
+            
 
             // Configurar llamada AJAX con GET
             oView.setBusy(true);
 
             $.ajax({
-                url: `http://localhost:4004/api/sec/valuesCRUD?procedure=${type}&labelID=${oSelectedCatalog.LABELID}&ValueID=${oFormData.VALUEID}`,
-                data: oParams,
+                url: `http://localhost:3033/api/catalogos/logicalLabelValue?status=${aceptar}&id=${oFormData.VALUEID}&type=2`,
                 method: "GET",
                 success: function (response) {
                     oView.setBusy(false);
-                    if (aceptar == true) {
+                    if (aceptar != true) {
                         MessageToast.show("Valor activado correctamente");
                     } else {
                         MessageToast.show("Valor desactivado correctamente");
@@ -295,12 +344,25 @@ sap.ui.define([
                     var updatedIndex = currentValues.findIndex(item => item.VALUEID === oFormData.VALUEID);
 
                     if (updatedIndex !== -1) {
-                        currentValues[updatedIndex].DETAIL_ROW = {
-                            ACTIVED: aceptar,
-                            DELETED: rechazar
-                        };
+                        currentValues[updatedIndex].DETAIL_ROW.ACTIVDED = aceptar;
                         oValuesModel.setProperty("/values", currentValues);
                     }
+                    // // Actualizar el modelo directamente
+                    // var currentValues = oValuesModel.getProperty("/values") || [];
+                    // var updatedIndex = currentValues.findIndex(item => item.VALUEID === oFormData.VALUEID);
+
+                    // if (updatedIndex !== -1) {
+                    //     currentValues[updatedIndex] = {
+                    //         ...currentValues[updatedIndex],
+                    //         VALUE: oFormData.VALUE,
+                    //         VALUEPAID: oFormData.VALUEPAID,
+                    //         ALIAS: oFormData.ALIAS,
+                    //         IMAGE: oFormData.IMAGE,
+                    //         DESCRIPTION: oFormData.DESCRIPTION
+                    //     };
+                    //     oValuesModel.setProperty("/values", currentValues);
+                    // }
+
                 }.bind(this),
                 error: function (error) {
                     oView.setBusy(false);
@@ -333,7 +395,7 @@ sap.ui.define([
                         oView.setBusy(true);
 
                         $.ajax({
-                            url: `http://localhost:4004/api/sec/valuesCRUD?procedure=deletePermanent&labelID=${oSelectedCatalog.LABELID}&ValueID=${oFormData.VALUEID}`,
+                            url: `http://localhost:3033/api/catalogos/deleteLabelOrValue?mode=physical&type=2&id=${oFormData.VALUEID}`,
                             method: "GET",
                             success: function (response) {
                                 oView.setBusy(false);
@@ -355,6 +417,17 @@ sap.ui.define([
                     }
                 }.bind(this)
             });
+        },
+        onSwitchChange: function (oEvent) {
+          var bState = oEvent.getParameter("state");
+          var oModel = this.getView().getModel("newValueModel");
+
+          oModel.setProperty("/DETAIL_ROW/ACTIVED", bState);
+          if (bState === true) {
+            oModel.setProperty("/DETAIL_ROW/DELETED", false);
+          } else {
+            oModel.setProperty("/DETAIL_ROW/DELETED", true);
+          }
         },
         onChangeValue: function () {
             var oView = this.getView();
