@@ -281,6 +281,20 @@ onActivateRole: function () {
 },
 
       onDeleteRole: function () {
+  const oTable = this.byId("rolesTable");
+  const iIndex = oTable.getSelectedIndex();
+
+  if (iIndex === -1) {
+    MessageToast.show("Selecciona un rol para eliminar.");
+    return;
+  }
+
+  const oSelectedRole = oTable.getContextByIndex(iIndex).getObject();
+
+  // Establecer modelo seleccionado como en activar/desactivar
+  const oModel = new JSONModel(oSelectedRole);
+  this.getView().setModel(oModel, "selectedRole");
+
       this._handleRoleAction({
         dialogType: "warning",
         message: "¿Estás seguro de que deseas eliminar el rol \"{ROLENAME}\" permanentemente? Esta acción no se puede deshacer.",
