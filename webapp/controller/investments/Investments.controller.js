@@ -36,14 +36,11 @@ sap.ui.define([
 
     // Inicialización de modelos
     _initModels: function() {
-      // Modelo de símbolos
-      this.getView().setModel(new JSONModel({
-        symbols: [
-          { symbol: "TSLA", name: "Tesla" },
-          { symbol: "AAPL", name: "Apple" },
-          { symbol: "MSFT", name: "Microsoft" }
-        ]
-      }), "symbolModel");
+        // Modelo de símbolos
+        const oSymbolsModel = new JSONModel();
+        oSymbolsModel.loadData("/model/symbols.json");
+        this.getView().setModel(oSymbolsModel, "symbolModel");
+
 
       // Modelo para datos de precios
       this.getView().setModel(new JSONModel({ value: [] }), "priceData");
@@ -267,7 +264,15 @@ sap.ui.define([
             simulationName: "Moving Average Crossover",
             symbol: oStrategyModel.getProperty("/symbol"),
             startDate: oStrategyModel.getProperty("/startDate"),
-            endDate: oStrategyModel.getProperty("/endDate")
+            endDate: oStrategyModel.getProperty("/endDate"),
+            TOTAL_BOUGHT_UNITS: data.SUMMARY?.TOTAL_BOUGHT_UNITS || 0,
+            TOTAL_SOLD_UNITS: data.SUMMARY?.TOTAL_SOLD_UNITS || 0,
+            REMAINING_UNITS: data.SUMMARY?.REMAINING_UNITS || 0,
+            FINAL_CASH: data.SUMMARY?.FINAL_CASH || 0,
+            FINAL_VALUE: data.SUMMARY?.FINAL_VALUE || 0,
+            FINAL_BALANCE: data.SUMMARY?.FINAL_BALANCE || 0,
+            REAL_PROFIT: data.SUMMARY?.REAL_PROFIT || 0,
+            PERCENTAGE_RETURN: data.SUMMARY?.PERCENTAGE_RETURN || 0
         });
 
         // Actualizar balance
