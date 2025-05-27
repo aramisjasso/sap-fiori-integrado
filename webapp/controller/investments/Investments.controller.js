@@ -21,7 +21,7 @@ sap.ui.define([
     // CONSTANTES
     _CONSTANTS: {
       DEFAULT_BALANCE: 1000,
-      DEFAULT_STOCK: 1,
+      DEFAULT_AMOUNT: 100,
       DEFAULT_SHORT_SMA: 50,
       DEFAULT_LONG_SMA: 200,
       URL_SIMULATION: "http://localhost:3033/api/inv/simulation?strategy=macrossover",
@@ -56,7 +56,7 @@ sap.ui.define([
       // Modelo de análisis de estrategia
       this.getView().setModel(new JSONModel({
         balance: this._CONSTANTS.DEFAULT_BALANCE,
-        stock: this._CONSTANTS.DEFAULT_STOCK,
+        amount: this._CONSTANTS.DEFAULT_AMOUNT,
         strategyKey: "",
         longSMA: this._CONSTANTS.DEFAULT_LONG_SMA,
         shortSMA: this._CONSTANTS.DEFAULT_SHORT_SMA,
@@ -115,6 +115,68 @@ sap.ui.define([
         console.error("Error al cargar ResourceBundle:", error);
       }
     },
+
+    onSymbolChange: function(oEvent) {
+        let sSymbol;
+        const oSelectedItem = oEvent.getParameter("selectedItem");
+        
+        // Handle both selection and manual input
+        if (oSelectedItem) {
+            sSymbol = oSelectedItem.getKey();
+        } else {
+            sSymbol = oEvent.getSource().getValue();
+        }
+
+        if (!sSymbol) {
+            return; // Exit if no symbol
+        }
+
+        const oResultModel = this.getView().getModel("strategyResultModel");
+        
+        // Clear previous data
+        oResultModel.setData({
+            isLoading: false,
+            hasResults: false,
+            chart_data: [],
+            signals: [],
+            result: null,
+            symbol: sSymbol
+        });
+
+        // Load price history for selected symbol
+        this._loadPriceHistory(sSymbol);
+    },
+
+    _loadPriceHistory: async function(sSymbol) {
+        try {
+            const TESTING_SYMBOL = sSymbol; 
+            
+            const response = await fetch(`http://localhost:3033/api/inv/pricehistory`, {
+                method: "GET",
+                headers: { "Content-Type": "application/json" }
+            });
+
+            if (!response.ok) {
+                throw new Error("Error al obtener historial de precios");
+            }
+
+            const data = await response.json();
+            
+            const chartData = data.value.map(item => ({
+                DATE_GRAPH: new Date(item.DATE),
+                CLOSE: item.CLOSE
+            }));
+
+            const oResultModel = this.getView().getModel("strategyResultModel");
+            oResultModel.setProperty("/chart_data", chartData);
+            oResultModel.setProperty("/symbol", TESTING_SYMBOL); // Usar símbolo de prueba
+            
+        } catch (error) {
+            console.error("Error:", error);
+            MessageToast.show("Error al cargar historial de precios");
+        }
+    },
+
 
     // Configurar delegados de vista
     _setupViewDelegates: function() {
@@ -243,7 +305,7 @@ sap.ui.define([
             "SYMBOL": sSymbol,
             "STARTDATE": this._formatDate(oStrategyModel.getProperty("/startDate")), 
             "ENDDATE": this._formatDate(oStrategyModel.getProperty("/endDate")),  
-            "AMOUNT": this._CONSTANTS.DEFAULT_BALANCE,
+            "AMOUNT": oStrategyModel.getProperty("/amount"),
             "USERID": "ARAMIS",
             "SPECS": [
                 {
@@ -307,13 +369,13 @@ sap.ui.define([
         });
 
         // Actualizar balance
-        var currentBalance = oStrategyModel.getProperty("/balance") || 0;
-        var gainPerShare = data.result || 0;
-        var stock = oStrategyModel.getProperty("/stock") || 1;
-        var totalGain = +(gainPerShare * stock).toFixed(2);
+        // var currentBalance = oStrategyModel.getProperty("/balance") || 0;
+        // var gainPerShare = data.result || 0;
+        // var stock = oStrategyModel.getProperty("/stock") || 1;
+        // var totalGain = +(gainPerShare * stock).toFixed(2);
         
-        oStrategyModel.setProperty("/balance", currentBalance + totalGain);
-        MessageToast.show(`Se añadieron $${totalGain} a tu balance.`);
+        // oStrategyModel.setProperty("/balance", currentBalance + totalGain);
+        // MessageToast.show(`Se añadieron $${totalGain} a tu balance.`);
     },
 
   _prepareTableData: function(aData, aSignals) {
@@ -466,6 +528,8 @@ sap.ui.define([
             if (!response.ok) throw new Error("Error en respuesta");
             
             const data = await response.json();
+
+            console.log(data)
             
             const transformedData = data.value.map(simulation => ({
                 date: new Date(simulation.STARTDATE),
@@ -473,7 +537,7 @@ sap.ui.define([
                 symbol: simulation.SYMBOL,
                 result: simulation.SUMMARY?.REAL_PROFIT || 0,
                 rentability: simulation.SUMMARY?.PERCENTAGE_RETURN,
-                initialAmount: this._CONSTANTS.DEFAULT_BALANCE, //prueba
+                initialAmount: simulation.AMOUNT,
                 status: "Completado",
                 details: simulation,
                 strategyType: simulation.STRATEGY,
