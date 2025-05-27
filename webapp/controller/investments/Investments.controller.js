@@ -583,6 +583,14 @@ sap.ui.define([
             simulationName: simulationDetail.SIMULATIONNAME,
             startDate: new Date(simulationDetail.STARTDATE), // Convertir a Date
             endDate: new Date(simulationDetail.ENDDATE),     // Convertir a Date
+            TOTAL_BOUGHT_UNITS: simulationDetail.SUMMARY?.TOTAL_BOUGHT_UNITS || 0,
+            TOTAL_SOLD_UNITS: simulationDetail.SUMMARY?.TOTAL_SOLD_UNITS || 0,
+            REMAINING_UNITS: simulationDetail.SUMMARY?.REMAINING_UNITS || 0,
+            FINAL_CASH: simulationDetail.SUMMARY?.FINAL_CASH || 0,
+            FINAL_VALUE: simulationDetail.SUMMARY?.FINAL_VALUE || 0,
+            FINAL_BALANCE: simulationDetail.SUMMARY?.FINAL_BALANCE || 0,
+            REAL_PROFIT: simulationDetail.SUMMARY?.REAL_PROFIT || 0,
+            PERCENTAGE_RETURN: simulationDetail.SUMMARY?.PERCENTAGE_RETURN || 0,
             originalData: simulationDetail // Guardar copia completa por si se necesita
         });
         
@@ -613,50 +621,63 @@ sap.ui.define([
     },
 
 onDeleteSelected: function() {
-    const oTable = sap.ui.getCore().byId("historyTable");
+    const oTable = sap.ui.getCore().byId("historyTable"); // Mejor usa this.byId() en lugar de sap.ui.getCore().byId()
     const aSelectedItems = oTable.getSelectedItems();
     
     if (!aSelectedItems.length) {
-        MessageToast.show("Selecciona al menos una estrategia para eliminar");
+        MessageToast.show("Selecciona al menos una simulación para eliminar");
         return;
     }
 
-    MessageBox.confirm("¿Desea eliminar las estrategias seleccionadas?", {
+    const sMessage = aSelectedItems.length === 1 
+        ? "¿Deseas eliminar la simulación seleccionada?" 
+        : `¿Deseas eliminar las ${aSelectedItems.length} simulaciones seleccionadas?`;
+
+    MessageBox.confirm(sMessage, {
+        title: "Confirmar eliminación",
         onClose: async function(oAction) {
             if (oAction === MessageBox.Action.OK) {
                 try {
                     sap.ui.core.BusyIndicator.show(0);
                     
-                    // Get simulation ID
-                    const oSelectedItem = aSelectedItems[0];
-                    const oContext = oSelectedItem.getBindingContext("historyModel");
-                    const oData = oContext.getObject();
-                    const sSimulationId = oData.details.SIMULATIONID;
+                    // Obtener todos los IDs seleccionados
+                    const aSimulationIds = aSelectedItems.map(oItem => {
+                        return oItem.getBindingContext("historyModel").getObject().details.SIMULATIONID;
+                    });
 
-                    const response = await fetch("http://localhost:3033/api/inv/deleteSimulation", {
+                    // Llamar al endpoint de delete múltiple
+                    const response = await fetch("http://localhost:3033/api/inv/deleteSimulations", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
-                            idSimulation: sSimulationId,
-                            idUser: "ARAMIS"
+                            userID: "ARAMIS",  // Hardcodeado como en tu ejemplo, pero idealmente usa el user real
+                            simulationIDs: aSimulationIds
                         })
                     });
 
                     if (!response.ok) {
                         const errorData = await response.json();
-                        throw new Error(errorData.message || "Error al eliminar");
+                        throw new Error(errorData.message || "Error al eliminar las simulaciones");
                     }
 
+                    // Recargar datos y actualizar UI
                     await this._loadHistoryData();
-                    MessageToast.show("Estrategia eliminada correctamente");
                     
+                    // Mensaje de éxito personalizado
+                    const sSuccessMessage = aSimulationIds.length === 1
+                        ? "Simulación eliminada correctamente"
+                        : `${aSimulationIds.length} simulaciones eliminadas correctamente`;
+                    
+                    MessageToast.show(sSuccessMessage);
+
+                    // Resetear modo de eliminación
                     const oModel = this.getView().getModel("historyModel");
                     oModel.setProperty("/isDeleteMode", false);
                     oModel.setProperty("/selectedCount", 0);
 
                 } catch (error) {
                     console.error("Error detallado:", error);
-                    MessageBox.error(error.message || "Error al eliminar la estrategia");
+                    MessageBox.error(error.message || "Error al eliminar las simulaciones");
                 } finally {
                     sap.ui.core.BusyIndicator.hide();
                 }
