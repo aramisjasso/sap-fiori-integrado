@@ -473,54 +473,34 @@ sap.ui.define([
             const sDateKey = oDate.toISOString().split('T')[0];
             const oSignal = aSignals.find(s => s.DATE === sDateKey);
 
-            // 1. Procesar indicadores según la estrategia
-            let indicatorText = "-";
-            let indicatorValues = {};
+            // Extracción de todos los indicadores necesarios
+            const indicators = {
+                short_ma: null,
+                long_ma: null,
+                rsi: null,
+                sma: null,
+                ma: null,
+                atr: null,
+                adx: null
+            };
 
             if (Array.isArray(oItem.INDICATORS)) {
-            oItem.INDICATORS.forEach(indicator => {
-                const value = parseFloat(indicator.VALUE);
-                switch(indicator.INDICATOR.toLowerCase()) {
-                    case 'short_ma':
-                        indicatorValues.SHORT_MA = value;
-                        break;
-                    case 'long_ma':
-                        indicatorValues.LONG_MA = value;
-                        break;
-                    case 'rsi':
-                        indicatorValues.RSI = value;
-                        break;
-                    case 'momentum':
-                        indicatorValues.MOMENTUM = value;
-                        break;
-                    case 'ma_length':
-                        indicatorValues.MA = value;
-                        break;
-                    case 'atr':
-                        indicatorValues.ATR = value;
-                        break;
-                }
-            });
+                oItem.INDICATORS.forEach(indicator => {
+                    const key = indicator.INDICATOR.toLowerCase();
+                    if (indicators.hasOwnProperty(key)) {
+                        indicators[key] = parseFloat(indicator.VALUE);
+                    }
+                });
+            }
 
-            const parts = [];
-            if (indicatorValues.SHORT_MA && indicatorValues.LONG_MA) {
-                parts.push(`SMA(${indicatorValues.SHORT_MA.toFixed(2)}/${indicatorValues.LONG_MA.toFixed(2)})`);
-            }
-            if (indicatorValues.RSI) {
-                parts.push(`RSI: ${indicatorValues.RSI.toFixed(2)}`);
-            }
-            if (indicatorValues.MOMENTUM) {
-                parts.push(`MOM: ${indicatorValues.MOMENTUM.toFixed(2)}`);
-            }
-            if (indicatorValues.MA) {
-                parts.push(`MA: ${indicatorValues.MA.toFixed(2)}`);
-            }
-            if (indicatorValues.ATR) {
-                parts.push(`ATR: ${indicatorValues.ATR.toFixed(2)}`);
-            }
-            
-            indicatorText = parts.join(", ") || "-";
-        }
+            // Construcción del texto de indicadores para la tabla
+            const indicatorParts = [];
+            if (indicators.short_ma !== null && indicators.long_ma !== null) indicatorParts.push(`SMA(${indicators.short_ma.toFixed(2)}/${indicators.long_ma.toFixed(2)})`);
+            if (indicators.rsi !== null) indicatorParts.push(`RSI: ${indicators.rsi.toFixed(2)}`);
+            if (indicators.sma !== null) indicatorParts.push(`SMA: ${indicators.sma.toFixed(2)}`);
+            if (indicators.ma !== null) indicatorParts.push(`MA: ${indicators.ma.toFixed(2)}`);
+            if (indicators.atr !== null) indicatorParts.push(`ATR: ${indicators.atr.toFixed(2)}`);
+            if (indicators.adx !== null) indicatorParts.push(`ADX: ${indicators.adx.toFixed(2)}`);
 
             // Actualizar el acumulado de acciones (usando el nuevo formato de señales)
             if (oSignal) {
@@ -535,8 +515,14 @@ sap.ui.define([
                 LOW: oItem.LOW,
                 CLOSE: oItem.CLOSE,
                 VOLUME: oItem.VOLUME,
-                ...indicatorValues,
-                INDICATORS: indicatorText,
+                SHORT_MA: indicators.short_ma,
+                LONG_MA: indicators.long_ma,
+                RSI: indicators.rsi,
+                SMA: indicators.sma,
+                MA: indicators.ma,
+                ATR: indicators.atr,
+                ADX: indicators.adx,
+                INDICATORS: indicatorParts.length > 0 ? indicatorParts.join(", ") : "-",
                 SIGNALS: oSignal?.TYPE?.toUpperCase() || "-", // "BUY", "SELL" o vacío
                 RULES: oSignal?.REASONING || "-",
                 SHARES: currentShares.toFixed(4),  // Muestra el acumulado diario
