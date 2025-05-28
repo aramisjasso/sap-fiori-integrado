@@ -78,14 +78,14 @@
                 press=".onToggleDeleteMode"/>
             <Button
                 icon="sap-icon://edit"
-                text="Editar Seleccionado"
+                text="Editar"
                 type="Transparent"
                 visible="{= !${historyModel>/isDeleteMode}}"
                 press=".onEditSelected"
                 enabled="{= ${historyModel>/selectedItem} !== null }"/>
             <Button
                 icon="sap-icon://delete"
-                text="Eliminar Seleccionados"
+                text="Eliminar"
                 type="Transparent"
                 visible="{historyModel>/isDeleteMode}"
                 press=".onDeleteSelected"

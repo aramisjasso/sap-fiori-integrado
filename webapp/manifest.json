@@ -111,6 +111,12 @@
                     "name": "RouteRoles",
                     "target": "TargetRoles"
                 },
+                {
+                    "pattern": "roles/detail/{roleId}",
+                    "name": "RouteRolesDetail",
+                    "target": "TargetRolesDetail"
+                },
+
                  {
                     "pattern": "users",
                     "name": "RouteUsersList",
@@ -179,6 +185,12 @@
                     "viewId": "login",
                     "viewType": "XML",
                     "viewPath": "com.invertions.sapfiorimodinv.view"
+                },
+                "TargetRolesDetail": {
+                "viewName": "RolesDetail",
+                "viewId": "rolesDetail",
+                "viewType": "XML",
+                "viewPath": "com.invertions.sapfiorimodinv.view.security"
                 }
             }
         },

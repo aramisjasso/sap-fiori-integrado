@@ -16,7 +16,7 @@
                 <Title text="Configuración" titleStyle="H4" />
                 <HBox justifyContent="SpaceBetween">
                     <Label text="Estrategia:" class="sapUiTinyMarginEnd" />
-                    <Text text="{strategyResultModel>/simulationName}" />
+                    <Text text="{strategyResultModel>/strategy}" />
                 </HBox>
                 <HBox justifyContent="SpaceBetween">
                     <Label text="Simbolo:" class="sapUiTinyMarginEnd" />
@@ -125,23 +125,38 @@
 
                 <HBox justifyContent="SpaceBetween">
                     <Label text="Efectivo Final:" class="sapUiTinyMarginEnd" />
-                    <ObjectNumber number="{strategyResultModel>/FINAL_CASH}" unit="USD" />
+                    <ObjectNumber number="{
+                            path: 'strategyResultModel>/FINAL_CASH',
+                            formatter: '.formatNumber'
+                        }" 
+                        unit="USD" />
                 </HBox>
 
                 <HBox justifyContent="SpaceBetween">
                     <Label text="Valor de Acciones:" class="sapUiTinyMarginEnd" />
-                    <ObjectNumber number="{strategyResultModel>/FINAL_VALUE}" unit="USD" />
+                    <ObjectNumber number="{
+                            path: 'strategyResultModel>/FINAL_VALUE',
+                            formatter: '.formatNumber'
+                        }" 
+                        unit="USD" />
                 </HBox>
 
                 <HBox justifyContent="SpaceBetween">
                     <Label text="Balance Final:" class="sapUiTinyMarginEnd" />
-                    <ObjectNumber number="{strategyResultModel>/FINAL_BALANCE}" unit="USD" />
+                    <ObjectNumber number="{
+                            path: 'strategyResultModel>/FINAL_BALANCE',
+                            formatter: '.formatNumber'
+                        }" 
+                        unit="USD" />
                 </HBox>
 
                 <HBox justifyContent="SpaceBetween">
                     <Label text="Ganancia Real:" class="sapUiTinyMarginEnd" />
-                    <ObjectNumber number="{strategyResultModel>/REAL_PROFIT}" unit="USD"
-                        state="Success" />
+                    <ObjectNumber number="{
+                            path: 'strategyResultModel>/REAL_PROFIT',
+                            formatter: '.formatNumber'
+                        }" 
+                        unit="USD" state="Success"/>
                 </HBox>
             </VBox>
 

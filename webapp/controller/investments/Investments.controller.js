@@ -16,12 +16,11 @@ sap.ui.define([
   return Controller.extend("com.invertions.sapfiorimodinv.controller.investments.Investments", {
     // Variables de clase
     _oResourceBundle: null,
-    _sSidebarOriginalSize: "380px",
 
     // CONSTANTES
     _CONSTANTS: {
-      DEFAULT_BALANCE: 1000,
-      DEFAULT_AMOUNT: 100,
+    DEFAULT_BALANCE: 1000,
+      DEFAULT_AMOUNT: 25,
       DEFAULT_SHORT_SMA: 50,
       DEFAULT_LONG_SMA: 200,
       URL_SIMULATION: "http://localhost:3033/api/inv/simulation?strategy=macrossover",
@@ -55,11 +54,21 @@ sap.ui.define([
 
       // Modelo de análisis de estrategia
       this.getView().setModel(new JSONModel({
-        balance: sessionStorage.getItem("CAPITAL") || this._CONSTANTS.DEFAULT_BALANCE,
+        balance: sessionStorage.getItem("CAPITAL"),
         amount: this._CONSTANTS.DEFAULT_AMOUNT,
         strategyKey: "",
+        // Parámetros para MACrossover
         longSMA: this._CONSTANTS.DEFAULT_LONG_SMA,
         shortSMA: this._CONSTANTS.DEFAULT_SHORT_SMA,
+        // Parámetros para Reversión Simple
+        rsi: 14,
+        // Parámetros para Supertrend
+        ma_length: 10,
+        atr: 10,
+        mult: 3.0,
+        rr: 2.0,
+        // Parámetros para Momentum
+        period: 14,
         startDate: null,
         endDate: null,
         controlsVisible: false,
@@ -109,10 +118,10 @@ sap.ui.define([
         this._oResourceBundle = oI18nModel.getResourceBundle();
         this.getView().getModel("strategyAnalysisModel").setProperty("/strategies", [
           { key: "", text: this._oResourceBundle.getText("selectStrategyPlaceholder") },
+          { key: "Momentum", text: this._oResourceBundle.getText("momentumStrategy")},
           { key: "MACrossover", text: this._oResourceBundle.getText("movingAverageCrossoverStrategy") },
           { key: "Reversión Simple", text: this._oResourceBundle.getText("reversionSimpleStrategy")},
           { key: "Supertrend", text: this._oResourceBundle.getText("supertrendStrategy")},
-          { key: "Momentum", text: this._oResourceBundle.getText("momentumStrategy")}
         ]);
       } catch (error) {
         console.error("Error al cargar ResourceBundle:", error);
@@ -196,50 +205,50 @@ sap.ui.define([
 
     // Configurar gráfico
     _onViewAfterRendering: function() {
-    const oVizFrame = this.byId("idVizFrame");
-    if (!oVizFrame) return;
+        const oVizFrame = this.byId("idVizFrame");
+        if (!oVizFrame) return;
 
-    oVizFrame.setVizProperties({
-        plotArea: { 
-            dataShape: { 
-                primaryAxis: ["line", "line", "line", "point", "point"]
+        oVizFrame.setVizProperties({
+            plotArea: { 
+                dataShape: { 
+                    primaryAxis: ["line", "line", "line", "line", "line", "point", "point"]
+                },
+                colorPalette: ["#0074D9", "#FFDC00", "#FFA500", "#B10DC9", "#39CCCC", "#2ecc40", "#ff4136"],
+                dataLabel: { visible: false },
+                marker: {
+                    visible: true,
+                    forceVisible: true,
+                    shape: ["circle", "circle", "circle", "triangleUp", "triangleDown"],
+                    size: 5,
+                },
+            
+                window: {
+                    start: "firstDataPoint",
+                    end: "lastDataPoint"
+                },
+                handleNull: "zero"
             },
-            colorPalette: ["#0074D9", "#FFDC00", "#FFA500", "#2ecc40", "#ff4136"],
-            dataLabel: { visible: false },
-            marker: {
+            valueAxis: { 
+                title: { text: "Precio de Cierre (USD)" }, 
+                visible: true 
+            },
+            timeAxis: {
+                title: { text: "Fecha" },
+                levels: ["day", "month", "year"],
+                label: { formatString: "dd/MM/yy" }
+            },
+            title: { text: "Histórico de Precios de Acciones" },
+            legend: { visible: true },
+            tooltip: {
                 visible: true,
-                forceVisible: true,
-                shape: ["circle", "circle", "circle", "triangleUp", "triangleDown"],
-                size: 5,
             },
-          
-            window: {
-                start: "firstDataPoint",
-                end: "lastDataPoint"
-            },
-            handleNull: "zero"
-        },
-        valueAxis: { 
-            title: { text: "Precio de Cierre (USD)" }, 
-            visible: true 
-        },
-        timeAxis: {
-            title: { text: "Fecha" },
-            levels: ["day", "month", "year"],
-            label: { formatString: "dd/MM/yy" }
-        },
-        title: { text: "Histórico de Precios de Acciones" },
-        legend: { visible: true },
-        tooltip: {
-            visible: true,
-        },
-        interaction: {
-            behaviorType : null,
-            zoom: { enablement: "enabled" },
-            selectability: { mode: "single" }
-        }
-    });
-  },
+            interaction: {
+                behaviorType : null,
+                zoom: { enablement: "enabled" },
+                selectability: { mode: "single" }
+            }
+        });
+    },
 
     // Métodos de fecha
     _setDefaultDates: function() {
@@ -309,6 +318,79 @@ sap.ui.define([
     },
 
     _callAnalysisAPISimulation: async function(sSymbol, oStrategyModel, oResultModel) {
+        const strategy = oStrategyModel.getProperty("/strategyKey");
+        let apiStrategyName = strategy;
+        
+        // Ajustar nombre de estrategia para API
+        switch(strategy) {
+            case "Momentum":
+                apiStrategyName = "momentum";
+                break;
+            case "Reversión Simple":
+                apiStrategyName = "reversionsimple";
+                break;
+            case "Supertrend":
+                apiStrategyName = "supertrend";
+                break;
+            case "MACrossover":
+                apiStrategyName = "macrossover";
+                break;
+            default:
+                throw new Error("Estrategia no soportada");
+        }
+
+        const API_URL = `http://localhost:3033/api/inv/simulation?strategy=${apiStrategyName}`;
+
+        // Configurar SPECS según la estrategia
+        let SPECS = [];
+        switch(apiStrategyName) {
+            case "reversionsimple":
+                SPECS = [{
+                    INDICATOR: "rsi",
+                    VALUE: oStrategyModel.getProperty("/rsi")
+                }];
+                break;
+            case "supertrend":
+                SPECS = [
+                    {
+                        INDICATOR: "ma_length",
+                        VALUE: oStrategyModel.getProperty("/ma_length")
+                    },
+                    {
+                        INDICATOR: "atr",
+                        VALUE: oStrategyModel.getProperty("/atr")
+                    },
+                    {
+                        INDICATOR: "mult",
+                        VALUE: oStrategyModel.getProperty("/mult")
+                    },
+                    {
+                        INDICATOR: "rr",
+                        VALUE: oStrategyModel.getProperty("/rr")
+                    }
+                ];
+                break;
+            case "momentum":
+                SPECS = [
+                    {
+                        INDICATOR: "period",
+                        VALUE: oStrategyModel.getProperty("/period") || 14
+                    }
+                ];
+                break;
+            default: // MACrossover
+                SPECS = [
+                    {
+                        INDICATOR: "SHORT_MA",
+                        VALUE: oStrategyModel.getProperty("/shortSMA")
+                    },
+                    {
+                        INDICATOR: "LONG_MA",
+                        VALUE: oStrategyModel.getProperty("/longSMA")
+                    }
+                ];
+        }
+
       var oRequestBody = {
         "SIMULATION": {
             "SYMBOL": sSymbol,
@@ -316,20 +398,11 @@ sap.ui.define([
             "ENDDATE": this._formatDate(oStrategyModel.getProperty("/endDate")),  
             "AMOUNT": oStrategyModel.getProperty("/amount"),
             "USERID": "ARAMIS",
-            "SPECS": [
-                {
-                    "INDICATOR": "SHORT_MA",
-                    "VALUE": oStrategyModel.getProperty("/shortSMA")
-                },
-                {
-                    "INDICATOR": "LONG_MA",
-                    "VALUE": oStrategyModel.getProperty("/longSMA")
-                }
-            ]
+            "SPECS": SPECS
         }
     };
       try {
-        const response = await fetch(this._CONSTANTS.URL_SIMULATION, {
+        const response = await fetch(API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(oRequestBody)
@@ -342,7 +415,6 @@ sap.ui.define([
         const data = await response.json();
         await this._handleAnalysisResponse(data.value[0], oStrategyModel, oResultModel);
         
-        // Quitar el loading solo después de procesar los datos
         oResultModel.setProperty("/isLoading", false);
     } catch (error) {
         console.error("Error:", error);
@@ -363,7 +435,7 @@ sap.ui.define([
             ),
             signals: data.SIGNALS || [],
             result: data.SUMMARY?.REAL_PROFIT || 0,
-            simulationName: "Moving Average Crossover",
+            strategy: data.STRATEGY,
             symbol: data.SYMBOL,
             startDate: oStrategyModel.getProperty("/startDate"),
             endDate: oStrategyModel.getProperty("/endDate"),
@@ -378,60 +450,79 @@ sap.ui.define([
         });
 
         // Actualizar balance
-        var currentBalance = oStrategyModel.getProperty("/balance") || 0;
-        var gainPerShare = data.SUMMARY?.REAL_PROFIT  || 0;
-        var stock = oStrategyModel.getProperty("/stock") || 1;
-        var totalGain = +(gainPerShare * stock).toFixed(2);
+        var currentBalance = parseFloat(oStrategyModel.getProperty("/balance")) || 0;
+        var gainPerShare = parseFloat(oResultModel.getProperty("/REAL_PROFIT")) || 0;
+        var totalBalance = currentBalance + gainPerShare;
         
-        oStrategyModel.setProperty("/balance", currentBalance + totalGain);
-        MessageToast.show(`Se añadieron $${totalGain} a tu balance.`);
+        // Actualizar balance en modelo y sessionStorage
+        oStrategyModel.setProperty("/balance", totalBalance);
+        sessionStorage.setItem("CAPITAL", totalBalance.toString());
+        
+        // Mostrar mensaje con formato de número
+        MessageToast.show(`Se añadieron ${this.formatNumber(gainPerShare)} a tu balance.`);
     },
 
     _prepareTableData: function(aData, aSignals) {
         if (!Array.isArray(aData)) return [];
         
         const oDateFormat = DateFormat.getDateInstance({ pattern: "dd/MM/yyyy" });
-        let currentShares = 0;
+        let currentShares = 0; // Rastrea las acciones en tiempo real
         
         return aData.map(oItem => {
-            const oDate = typeof oItem.DATE === 'string' 
-                ? new Date(oItem.DATE) 
-                : (oItem.DATE instanceof Date ? oItem.DATE : new Date(oItem.date));
-            
+            const oDate = new Date(oItem.DATE);
             const sDateKey = oDate.toISOString().split('T')[0];
             const oSignal = aSignals.find(s => s.DATE === sDateKey);
 
-            // Extracción de todos los indicadores necesarios
-            const indicators = {
-                short_ma: null,
-                long_ma: null,
-                rsi: null,
-                sma: null,
-                ma: null,
-                atr: null,
-                adx: null
-            };
+            // 1. Procesar indicadores según la estrategia
+            let indicatorText = "-";
+            let indicatorValues = {};
 
             if (Array.isArray(oItem.INDICATORS)) {
-                oItem.INDICATORS.forEach(indicator => {
-                    const key = indicator.INDICATOR.toLowerCase();
-                    if (indicators.hasOwnProperty(key)) {
-                        indicators[key] = parseFloat(indicator.VALUE);
-                    }
-                });
+            oItem.INDICATORS.forEach(indicator => {
+                const value = parseFloat(indicator.VALUE);
+                switch(indicator.INDICATOR.toLowerCase()) {
+                    case 'short_ma':
+                        indicatorValues.SHORT_MA = value;
+                        break;
+                    case 'long_ma':
+                        indicatorValues.LONG_MA = value;
+                        break;
+                    case 'rsi':
+                        indicatorValues.RSI = value;
+                        break;
+                    case 'momentum':
+                        indicatorValues.MOMENTUM = value;
+                        break;
+                    case 'ma_length':
+                        indicatorValues.MA = value;
+                        break;
+                    case 'atr':
+                        indicatorValues.ATR = value;
+                        break;
+                }
+            });
+
+            const parts = [];
+            if (indicatorValues.SHORT_MA && indicatorValues.LONG_MA) {
+                parts.push(`SMA(${indicatorValues.SHORT_MA.toFixed(2)}/${indicatorValues.LONG_MA.toFixed(2)})`);
             }
+            if (indicatorValues.RSI) {
+                parts.push(`RSI: ${indicatorValues.RSI.toFixed(2)}`);
+            }
+            if (indicatorValues.MOMENTUM) {
+                parts.push(`MOM: ${indicatorValues.MOMENTUM.toFixed(2)}`);
+            }
+            if (indicatorValues.MA) {
+                parts.push(`MA: ${indicatorValues.MA.toFixed(2)}`);
+            }
+            if (indicatorValues.ATR) {
+                parts.push(`ATR: ${indicatorValues.ATR.toFixed(2)}`);
+            }
+            
+            indicatorText = parts.join(", ") || "-";
+        }
 
-            // Construcción del texto de indicadores para la tabla
-            const indicatorParts = [];
-            if (indicators.short_ma !== null) indicatorParts.push(`SMA Corta: ${indicators.short_ma.toFixed(2)}`);
-            if (indicators.long_ma !== null) indicatorParts.push(`SMA Larga: ${indicators.long_ma.toFixed(2)}`);
-            if (indicators.rsi !== null) indicatorParts.push(`RSI: ${indicators.rsi.toFixed(2)}`);
-            if (indicators.sma !== null) indicatorParts.push(`SMA: ${indicators.sma.toFixed(2)}`);
-            if (indicators.ma !== null) indicatorParts.push(`MA: ${indicators.ma.toFixed(2)}`);
-            if (indicators.atr !== null) indicatorParts.push(`ATR: ${indicators.atr.toFixed(2)}`);
-            if (indicators.adx !== null) indicatorParts.push(`ADX: ${indicators.adx.toFixed(2)}`);
-
-            // Actualización de acciones
+            // Actualizar el acumulado de acciones (usando el nuevo formato de señales)
             if (oSignal) {
                 currentShares = oSignal.SHARES || 0;
             }
@@ -439,30 +530,18 @@ sap.ui.define([
             return {
                 DATE: oDateFormat.format(oDate),
                 DATE_GRAPH: oDate,
-                OPEN: parseFloat(oItem.OPEN),
-                HIGH: parseFloat(oItem.HIGH),
-                LOW: parseFloat(oItem.LOW),
-                CLOSE: parseFloat(oItem.CLOSE),
-                VOLUME: parseFloat(oItem.VOLUME),
-                
-                // Indicadores para el gráfico
-                SHORT_MA: indicators.short_ma,
-                LONG_MA: indicators.long_ma,
-                RSI: indicators.rsi,
-                SMA: indicators.sma,
-                MA: indicators.ma,
-                ATR: indicators.atr,
-                ADX: indicators.adx,
-                
-                // Señales
-                BUY_SIGNAL: oSignal?.TYPE?.toLowerCase() === 'buy' ? parseFloat(oItem.CLOSE) : null,
-                SELL_SIGNAL: oSignal?.TYPE?.toLowerCase() === 'sell' ? parseFloat(oItem.CLOSE) : null,
-                
-                // Texto para tabla
-                INDICATORS: indicatorParts.length > 0 ? indicatorParts.join(", ") : "-",
-                SIGNALS: oSignal?.TYPE?.toUpperCase() || "-", 
+                OPEN: oItem.OPEN,
+                HIGH: oItem.HIGH,
+                LOW: oItem.LOW,
+                CLOSE: oItem.CLOSE,
+                VOLUME: oItem.VOLUME,
+                ...indicatorValues,
+                INDICATORS: indicatorText,
+                SIGNALS: oSignal?.TYPE?.toUpperCase() || "-", // "BUY", "SELL" o vacío
                 RULES: oSignal?.REASONING || "-",
-                SHARES: currentShares.toFixed(2),
+                SHARES: currentShares.toFixed(4),  // Muestra el acumulado diario
+                BUY_SIGNAL: oSignal?.TYPE?.toLowerCase() === 'buy' ? oItem.CLOSE : null,
+                SELL_SIGNAL: oSignal?.TYPE?.toLowerCase() === 'sell' ? oItem.CLOSE : null,
             };
         });
     },
@@ -652,6 +731,13 @@ sap.ui.define([
             // 2. Actualizar modelos
             const oStrategyModel = this.getView().getModel("strategyAnalysisModel");
             const oResultModel = this.getView().getModel("strategyResultModel");
+
+            const oViewModel = this.getView().getModel("viewModel");
+            oViewModel.setProperty("/analysisPanelExpanded", false);
+            oViewModel.setProperty("/resultPanelExpanded", true);
+
+            oResultModel.setProperty("/isLoading", true);
+            
             
             this._updateModelsWithSimulationData({
                 simulationDetail,
@@ -660,6 +746,8 @@ sap.ui.define([
                 oItem: this._oSelectedStrategy
             });
             
+            oResultModel.setProperty("/isLoading", false);
+
             // 4. Cerrar y feedback
             this._oHistoryPopover.close();
             sap.m.MessageToast.show(`Estrategia ${simulationDetail.SIMULATIONNAME} cargada`);
@@ -669,6 +757,7 @@ sap.ui.define([
             sap.m.MessageBox.error("Error al cargar la estrategia");
         } finally {
             sap.ui.core.BusyIndicator.hide();
+            oResultModel.setProperty("/isLoading", false);
         }
     },
 
@@ -698,7 +787,7 @@ sap.ui.define([
             ...oStrategyModel.getData(),
             symbol: simulationDetail.SYMBOL,
             strategyKey: "MACrossover", // O el valor que corresponda
-            balance: this._CONSTANTS.DEFAULT_BALANCE,
+            balance: sessionStorage.getItem("CAPITAL"),
             startDate: new Date(simulationDetail.STARTDATE),
             endDate: new Date(simulationDetail.ENDDATE),
             controlsVisible: true // Mostrar los controles de la estrategia
@@ -713,6 +802,7 @@ sap.ui.define([
         oStrategyModel.setProperty("/shortSMA", specsMap.SHORT_MA);
         oStrategyModel.setProperty("/longSMA", specsMap.LONG_MA);
         
+
         // Datos para strategyResultModel
         oResultModel.setData({
             hasResults: true,

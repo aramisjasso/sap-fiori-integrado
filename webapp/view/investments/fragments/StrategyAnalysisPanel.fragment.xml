@@ -7,7 +7,7 @@
         id="strategyAnalysisPanelFragment"
         headerText="{i18n>strategyAnalysisPanelTitle}"
         expandable="true"
-        expanded="true"
+        expanded="{viewModel>/analysisPanelExpanded}"
         width="100%"
     >
         <content>
@@ -79,31 +79,6 @@
                                 />
                             </VBox>
                         </HBox>
-
-                        <VBox width="100%">
-                            <Label text="{i18n>startDateLabelText}" />
-                            <DatePicker
-                                id="startDatePickerInFragment"
-                                value="{
-                                        path: 'strategyAnalysisModel>/startDate', type: 'sap.ui.model.type.Date',
-                                        formatOptions: { pattern: 'yyyy-MM-dd' }
-                                    }"
-                                displayFormat="long"
-                                width="100%"
-                            />
-                        </VBox>
-                        <VBox width="100%">
-                            <Label text="{i18n>endDateLabelText}" />
-                            <DatePicker
-                                id="endDatePickerInFragment"
-                                value="{
-                                        path: 'strategyAnalysisModel>/endDate', type: 'sap.ui.model.type.Date',
-                                        formatOptions: { pattern: 'yyyy-MM-dd' }
-                                    }"
-                                displayFormat="long"
-                                width="100%"
-                            />
-                        </VBox>
 
                         <Label
                             class="sapUiTinyMarginTop"
@@ -186,14 +161,39 @@
                             visible="{= ${strategyAnalysisModel>/strategyKey} === 'Supertrend' }"
                         />
 
+                        <VBox width="100%">
+                            <Label text="{i18n>startDateLabelText}" />
+                            <DatePicker
+                                id="startDatePickerInFragment"
+                                value="{
+                                        path: 'strategyAnalysisModel>/startDate', type: 'sap.ui.model.type.Date',
+                                        formatOptions: { pattern: 'yyyy-MM-dd' }
+                                    }"
+                                displayFormat="long"
+                                width="100%"
+                            />
+                        </VBox>
+                        <VBox width="100%">
+                            <Label text="{i18n>endDateLabelText}" />
+                            <DatePicker
+                                id="endDatePickerInFragment"
+                                value="{
+                                        path: 'strategyAnalysisModel>/endDate', type: 'sap.ui.model.type.Date',
+                                        formatOptions: { pattern: 'yyyy-MM-dd' }
+                                    }"
+                                displayFormat="long"
+                                width="100%"
+                            />
+                        </VBox>
+
                         <Label
                             class="sapUiTinyMarginTop"
                             text="Cantidad de dinero a invertir"
                         />
                         <StepInput
-                            value="{strategyAnalysisModel>/stock}"
-                            min="1000"
-                            step="500"
+                            value="{strategyAnalysisModel>/amount}"
+                            min="25"
+                            step="25"
                             width="100%"
                             class=""
                         />
