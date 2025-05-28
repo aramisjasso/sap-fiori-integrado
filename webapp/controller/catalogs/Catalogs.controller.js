@@ -270,7 +270,7 @@ sap.ui.define(
           };
           // Llamada a la API para actualizar
           $.ajax({
-            url: "http://localhost:3033/api/catalogos/updateLabel?type=",
+            url: "http://localhost:3033/api/catalogos/updateLabel?type=1",
             method: "POST",
             contentType: "application/json",
             data: JSON.stringify(payload),
