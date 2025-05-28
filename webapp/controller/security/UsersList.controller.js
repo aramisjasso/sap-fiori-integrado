@@ -10,19 +10,20 @@ sap.ui.define([
     "sap/ui/core/Fragment",
     "sap/m/MessageToast",
     "sap/m/MessageBox"
+    // @ts-ignore
+    // @ts-ignore
+    // @ts-ignore
+    // @ts-ignore
+    // @ts-ignore
+    // @ts-ignore
+    // @ts-ignore
+    // @ts-ignore
 // @ts-ignore
-// @ts-ignore
-// @ts-ignore
-// @ts-ignore
-// @ts-ignore
-// @ts-ignore
-// @ts-ignore
-// @ts-ignore
-], function(BaseController,JSONModel,Log,Fragment,MessageToast,MessageBox){
+], function (BaseController, JSONModel, Log, Fragment, MessageToast, MessageBox) {
     "use strict";
 
-    return BaseController.extend("com.invertions.sapfiorimodinv.controller.security.UsersList",{
-        onInit: function(){
+    return BaseController.extend("com.invertions.sapfiorimodinv.controller.security.UsersList", {
+        onInit: function () {
 
             // Esto desactiva los botones cuando entras a la vista, hasta que selecciones un usuario en la tabla se activan
             var oViewModel = new JSONModel({
@@ -54,35 +55,123 @@ sap.ui.define([
             // @ts-ignore
             // @ts-ignore
             // @ts-ignore
+            // @ts-ignore
             var that = this;
 
             fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=get&type=all", {
                 method: "POST"
             })
-            .then(res => res.json())
-            .then(data => {
-                oModel.setData(data); // data = { value: [...] }
-                oTable.setModel(oModel);
-            })
-            .catch(err => {
+                .then(res => res.json())
+                .then(data => {
+                    oModel.setData(data); // data = { value: [...] }
+                    oTable.setModel(oModel);
+                })
+                .catch(err => {
+                    // @ts-ignore
+                    sap.m.MessageToast.show("Error al cargar usuarios: " + err.message);
+                });
+        },
+
+        // ============= CARGAR COMPAÑÍAS DINÁMICAMENTE =============
+        loadCompanies: async function () {
+            try {
+                // Llama a tu API para obtener las compañías (labelID=IdCompanies)
+                const res = await fetch("http://localhost:3033/api/catalogos/getAllLabels?type=value&labelID=IdCompanies", {
+                    method: "GET",
+                    headers: { "Content-Type": "application/json" }
+                });
+
+                if (!res.ok) throw new Error("Error en la respuesta del servidor.");
+
+                const data = await res.json();
+                console.log("Datos de compañías traidos:", data);
+                // data es un array de values
+                const aAllCompanies = Array.isArray(data) ? data : [];
+                const aFilteredCompanies = aAllCompanies.filter(
+                    (company) => company.DETAIL_ROW?.ACTIVED && !company.DETAIL_ROW?.DELETED
+                );
+
+                // Formatea para el ComboBox
+                const companiesFormatted = aFilteredCompanies.map((company) => ({
+                    COMPANYID: company.COMPANYID,
+                    COMPANYALIAS: company.VALUEID,
+                    COMPANYNAME: company.VALUE
+                }));
+
+                // Modelo y asignación
+                const oModel = this.getView().getModel("companies") || new sap.ui.model.json.JSONModel();
+                oModel.setData({ companies: companiesFormatted, originalData: aFilteredCompanies });
+                if (!this.getView().getModel("companies")) {
+                    this.getView().setModel(oModel, "companies");
+                }
+            } catch (error) {
+                console.error("Error al cargar compañías:", error);
                 // @ts-ignore
-                sap.m.MessageToast.show("Error al cargar usuarios: " + err.message);
-            });
+                sap.m.MessageBox.error("Error al cargar compañías. Por favor, intente nuevamente.");
+            }
         },
+        // ============= FIN CARGAR COMPAÑÍAS =============
 
-        loadCompanies: function() {
-            //Agregar lógica para cargar compañias
+        // ============= CARGAR DEPARTAMENTOS DINÁMICAMENTE =============
+        loadDeptos: async function () {
+            try {
+                // Llama a tu API para obtener los departamentos (labelID=IdDepartment)
+                const res = await fetch("http://localhost:3033/api/catalogos/getAllLabels?type=value&labelID=IdDepartment", {
+                    method: "GET",
+                    headers: { "Content-Type": "application/json" }
+                });
+
+                if (!res.ok) throw new Error("Error en la respuesta del servidor.");
+
+                const data = await res.json();
+                const aAllDepartments = Array.isArray(data) ? data : [];
+                let aFilteredDepartment = aAllDepartments.filter(
+                    (department) => department.DETAIL_ROW?.ACTIVED && !department.DETAIL_ROW?.DELETED
+                );
+
+                // Obtén la compañía seleccionada (COMPANYALIAS)
+                let sSelectedCompany = "";
+                if (this.getView().getModel("newUserModel")) {
+                    sSelectedCompany = this.getView().getModel("newUserModel").getProperty("/COMPANYALIAS");
+                } else if (this.getView().getModel("editUserModel")) {
+                    sSelectedCompany = this.getView().getModel("editUserModel").getProperty("/COMPANYALIAS");
+                }
+
+                // Filtra departamentos por compañía seleccionada
+                if (sSelectedCompany) {
+                    aFilteredDepartment = aFilteredDepartment.filter((department) => {
+                        if (department.VALUEPAID) {
+                            const parts = department.VALUEPAID.split("-");
+                            return parts[1] === sSelectedCompany;
+                        }
+                        return false;
+                    });
+                }
+
+                // Formatea para el ComboBox
+                const departmentFormatted = aFilteredDepartment.map((department) => ({
+                    DEPARTMENTID: department.VALUEID,
+                    DEPARTMENTNAME: department.VALUE
+                }));
+
+                // Modelo y asignación
+                const oModel = this.getView().getModel("departments") || new sap.ui.model.json.JSONModel();
+                oModel.setData({ departments: departmentFormatted, originalData: aFilteredDepartment });
+                if (!this.getView().getModel("departments")) {
+                    this.getView().setModel(oModel, "departments");
+                }
+            } catch (error) {
+                console.error("Error al cargar departamentos:", error);
+                // @ts-ignore
+                sap.m.MessageBox.error("Error al cargar departamentos. Por favor, intente nuevamente.");
+            }
         },
-
-        loadDeptos: function(){
-            //Agregar lógica para cargar deptos según la compañía
-        },
-
+        // ============= FIN CARGAR DEPARTAMENTOS =============
 
         // ============= CARGAR ROLES PARA EL DIALOGO DE NUEVO USUARIO =============
         /**
          * Funcion para cargar la lista de roles y poderlos visualizar en el combobox
-         * Esto va cambiar ya que quiere que primero carguemos las compañías, luego que carguemos los deptos
+         * Esto va cambiar ya que quiere que primero carguemos las compañías, luego que carguemos los depto
          * Y en base a las compañías y depto que coloquemos, se muestren los roles que pertenecen a esta compañía y depto.
          */
         loadRoles: function () {
@@ -93,14 +182,14 @@ sap.ui.define([
             fetch("http://localhost:3033/api/sec/usersroles/rolesCRUD?procedure=get&type=all", {
                 method: "POST"
             })
-            .then(res => res.json())
-            .then(data => {
-                // data.value debe ser el array de roles
-                oRolesModel.setData({ roles: data.value });
-                oView.setModel(oRolesModel, "roles");
-            })
-            // @ts-ignore
-            .catch(err => sap.m.MessageToast.show("Error al cargar roles: " + err.message));
+                .then(res => res.json())
+                .then(data => {
+                    // data.value debe ser el array de roles
+                    oRolesModel.setData({ roles: data.value });
+                    oView.setModel(oRolesModel, "roles");
+                })
+                // @ts-ignore
+                .catch(err => sap.m.MessageToast.show("Error al cargar roles: " + err.message));
         },
         // ============= FIN CARGAR ROLES =============
 
@@ -112,7 +201,7 @@ sap.ui.define([
         formatRoles: function (rolesArray) {
             if (!Array.isArray(rolesArray) || rolesArray.length === 0) return "";
             // Muestra ROLEID y si hay error, lo indica
-            return rolesArray.map(function(role) {
+            return rolesArray.map(function (role) {
                 return role.ROLEID + (role.error ? " (" + role.error + ")" : "");
             }).join(", ");
         },
@@ -163,7 +252,7 @@ sap.ui.define([
         /**
          * Función onpress del botón para agregar un nuevo usuario
          */
-        onAddUser : function() {
+        onAddUser: function () {
             var oView = this.getView();
 
             // Inicializa el modelo solo si no existe
@@ -201,7 +290,7 @@ sap.ui.define([
                     id: this.getView().getId(), // Usa el id de la vista
                     name: "com.invertions.sapfiorimodinv.view.security.fragments.AddUserDialog",
                     controller: this // <-- MUY IMPORTANTE
-                }).then(function(oDialog) {
+                }).then(function (oDialog) {
                     this._oCreateUserDialog = oDialog;
                     // @ts-ignore
                     this.getView().addDependent(oDialog);
@@ -213,16 +302,16 @@ sap.ui.define([
                 this.loadRoles();
                 this._oCreateUserDialog.open();
             }
-            
+
         },
 
         // ============= AGREGAR NUEVO USUARIO =============
-        // Envía los datos del nuevo usuario a la API CAP y refresca la tabla
         onSaveUser: function () {
             var that = this;
             var oDialog = this._oCreateUserDialog;
             var oModel = this.getView().getModel("newUserModel");
             var oData = oModel.getData();
+            var regUser = sessionStorage.getItem("USERID");
 
             // ========== FORMATEO DE DATOS ==========
             // Fecha de nacimiento (Date)
@@ -248,7 +337,7 @@ sap.ui.define([
 
             // Roles seleccionados (array de objetos {ROLEID})
             var oVBox = this.getView().byId("selectedRolesVBox");
-            var aRoles = oVBox.getItems().map(function(oItem) {
+            var aRoles = oVBox.getItems().map(function (oItem) {
                 return { ROLEID: oItem.data("roleId") };
             });
             oData.ROLES = aRoles;
@@ -261,7 +350,7 @@ sap.ui.define([
             }
 
             // ========== ENVÍO ==========
-            fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=post", {
+            fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=post&RegUser=" + regUser, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -270,29 +359,20 @@ sap.ui.define([
             })
             .then(res => res.json())
             .then(data => {
-                if (data && !data.error) {
-                    // @ts-ignore
-                    sap.m.MessageToast.show("Usuario agregado correctamente");
-                    that.loadUsers();
-                    if (oDialog) oDialog.close();
-                } else {
-                    let msg = "No se pudo agregar el usuario.";
-                    if (data && data.message) msg = data.message;
-                    if (data && data.errors) {
-                        msg += "\n";
-                        Object.keys(data.errors).forEach(function(field) {
-                            msg += "\n" + field + ": " + data.errors[field].message;
-                        });
-                    }
-                    // @ts-ignore
-                    sap.m.MessageBox.error("Error al agregar usuario: " + msg);
+                var errorObj = (data && Array.isArray(data.value) && data.value[0] && data.value[0].error) ? data.value[0] : data;
+                if (errorObj && errorObj.error) {
+                    sap.m.MessageBox.error("Error al agregar usuario: " + (errorObj.message || "No se pudo agregar el usuario."));
+                    return;
                 }
+                sap.m.MessageToast.show("Usuario agregado correctamente");
+                that.loadUsers();
+                if (oDialog) oDialog.close();
             })
             .catch(err => {
-                // @ts-ignore
                 sap.m.MessageBox.error("Error de red al agregar usuario: " + err.message);
             });
         },
+
         // ============= FIN AGREGAR NUEVO USUARIO =============
 
         onCancelUser: function () {
@@ -308,7 +388,7 @@ sap.ui.define([
          * Función onpress del botón para editar un nuevo usuario
          * Agregar la lógica para cargar la info a la modal
          */
-        onEditUser: function() {
+        onEditUser: function () {
             var oView = this.getView();
             var oSelected = this.selectedUser;
             if (!oSelected) {
@@ -325,7 +405,7 @@ sap.ui.define([
                     id: oView.getId(),
                     name: "com.invertions.sapfiorimodinv.view.security.fragments.EditUserDialog",
                     controller: this
-                }).then(function(oDialog) {
+                }).then(function (oDialog) {
                     this._oEditUserDialog = oDialog;
                     oView.addDependent(oDialog);
                     // @ts-ignore
@@ -342,7 +422,7 @@ sap.ui.define([
         },
 
         // ============= LLENAR LOS ROLES SELECCIONADOS EN EDICIÓN =============
-        _fillEditRolesVBox: function() {
+        _fillEditRolesVBox: function () {
             var oVBox = this.getView().byId("selectedEditRolesVBox");
             oVBox.removeAllItems();
             var oEditUserModel = this.getView().getModel("editUserModel");
@@ -350,7 +430,7 @@ sap.ui.define([
             var oRolesModel = this.getView().getModel("roles");
             var aAllRoles = oRolesModel ? oRolesModel.getProperty("/roles") : [];
 
-            aRoles.forEach(function(role) {
+            aRoles.forEach(function (role) {
                 var roleName = (aAllRoles.find(r => r.ROLEID === role.ROLEID) || {}).ROLENAME || role.ROLEID;
                 var oHBox = new sap.m.HBox({
                     items: [
@@ -359,7 +439,7 @@ sap.ui.define([
                         new sap.m.Button({
                             icon: "sap-icon://decline",
                             type: "Transparent",
-                            press: function() {
+                            press: function () {
                                 oVBox.removeItem(oHBox);
                             }
                         })
@@ -371,11 +451,12 @@ sap.ui.define([
         },
 
         // ============= GUARDAR EDICIÓN DE USUARIO =============
-        onEditSaveUser: function() {
+        onEditSaveUser: function () {
             var that = this;
             var oDialog = this._oEditUserDialog;
             var oModel = this.getView().getModel("editUserModel");
             var oData = oModel.getData();
+            var regUser = sessionStorage.getItem("USERID");
 
             // Formateo de datos igual que en alta
             if (oData.BIRTHDAYDATE) {
@@ -398,7 +479,7 @@ sap.ui.define([
 
             // Roles seleccionados
             var oVBox = this.getView().byId("selectedEditRolesVBox");
-            var aRoles = oVBox.getItems().map(function(oItem) {
+            var aRoles = oVBox.getItems().map(function (oItem) {
                 return { ROLEID: oItem.data("roleId") };
             });
             oData.ROLES = aRoles;
@@ -411,41 +492,29 @@ sap.ui.define([
             }
 
             // Enviar a la API
-            fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=put&userid=" + encodeURIComponent(oData.USERID), {
+            fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=put&userid=" + encodeURIComponent(oData.USERID) + "&RegUser=" + regUser, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(oData)
             })
             .then(res => res.json())
             .then(data => {
-                if (data && !data.error) {
-                    // @ts-ignore
-                    sap.m.MessageToast.show("Usuario editado correctamente");
-                    that.loadUsers();
-                    if (oDialog) oDialog.close();
-                } else {
-                    let msg = "No se pudo editar el usuario.";
-                    if (data && data.message) msg = data.message;
-                    if (data && data.errors) {
-                        msg += "\n";
-                        Object.keys(data.errors).forEach(function(field) {
-                            msg += "\n" + field + ": " + data.errors[field].message;
-                        });
-                    }
-                    // @ts-ignore
-                    sap.m.MessageBox.error("Error al editar usuario: " + msg);
+                var errorObj = (data && Array.isArray(data.value) && data.value[0] && data.value[0].error) ? data.value[0] : data;
+                if (errorObj && errorObj.error) {
+                    sap.m.MessageBox.error("Error al editar usuario: " + (errorObj.message || "No se pudo editar el usuario."));
+                    return;
                 }
+                sap.m.MessageToast.show("Usuario editado correctamente");
+                that.loadUsers();
+                if (oDialog) oDialog.close();
             })
             .catch(err => {
-                // @ts-ignore
                 sap.m.MessageBox.error("Error de red al editar usuario: " + err.message);
             });
         },
 
         // ============= CANCELAR EDICIÓN =============
-        onEditCancelUser: function(){
+        onEditCancelUser: function () {
             if (this._oEditUserDialog) {
                 this._oEditUserDialog.close();
             }
@@ -459,7 +528,7 @@ sap.ui.define([
         /**
          * Función onDeleteUser .
          */
-        onDeleteUser: function(){
+        onDeleteUser: function () {
             if (this.selectedUser) {
                 var that = this;
                 MessageBox.confirm("¿Deseas eliminar el usuario con nombre: " + this.selectedUser.USERNAME + "?", {
@@ -471,35 +540,35 @@ sap.ui.define([
                         }
                     }
                 });
-            }else{
+            } else {
                 MessageToast.show("Selecciona un usuario para eliminar de la base de datos");
             }
         },
 
         // ============= ELIMINAR USER (DELETE FÍSICO) =============
         // Elimina el usuario de la base de datos de forma permanente
-        deleteUser: function(UserId){
+        deleteUser: function (UserId) {
             var that = this;
-            fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=delete&type=hard&userid=" + encodeURIComponent(UserId), {
+            var regUser = sessionStorage.getItem("USERID");
+            fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=delete&type=hard&userid=" + encodeURIComponent(UserId) + "&RegUser=" + regUser, {
                 method: "POST"
             })
             .then(res => res.json())
             .then(data => {
-                if (data && !data.error) {
-                    // @ts-ignore
-                    sap.m.MessageToast.show("Usuario eliminado correctamente");
-                    that.loadUsers();
-                    that.getView().getModel("viewModel").setProperty("/buttonsEnabled", false);
-                } else {
-                    // @ts-ignore
-                    sap.m.MessageBox.error("Error al eliminar usuario: " + (data.message || "No se pudo eliminar el usuario."));
+                var errorObj = (data && Array.isArray(data.value) && data.value[0] && data.value[0].error) ? data.value[0] : data;
+                if (errorObj && errorObj.error) {
+                    sap.m.MessageBox.error("Error al eliminar usuario: " + (errorObj.message || "No se pudo eliminar el usuario."));
+                    return;
                 }
+                sap.m.MessageToast.show("Usuario eliminado correctamente");
+                that.loadUsers();
+                that.getView().getModel("viewModel").setProperty("/buttonsEnabled", false);
             })
             .catch(err => {
-                // @ts-ignore
                 sap.m.MessageBox.error("Error de red al eliminar usuario: " + err.message);
             });
         },
+
         // ============= FIN ELIMINAR USER (DELETE FÍSICO) =============
 
         // ===================================================
@@ -509,7 +578,7 @@ sap.ui.define([
         /**
          * Función onDesactivateUser.
          */
-        onDesactivateUser: function(){
+        onDesactivateUser: function () {
             if (this.selectedUser) {
                 var that = this;
                 MessageBox.confirm("¿Deseas desactivar el usuario con nombre: " + this.selectedUser.USERNAME + "?", {
@@ -521,35 +590,35 @@ sap.ui.define([
                         }
                     }
                 });
-            }else{
+            } else {
                 MessageToast.show("Selecciona un usuario para desactivar");
             }
         },
 
         // ============= DESACTIVAR USER (DELETE LÓGICO) =============
         // Marca el usuario como desactivado/eliminado lógicamente (no se borra de la BD)
-        desactivateUser: function(UserId){
+        desactivateUser: function (UserId) {
             var that = this;
-            fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=delete&type=logic&userid=" + encodeURIComponent(UserId), {
+            var regUser = sessionStorage.getItem("USERID");
+            fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=delete&type=logic&userid=" + encodeURIComponent(UserId) + "&RegUser=" + regUser, {
                 method: "POST"
             })
             .then(res => res.json())
             .then(data => {
-                if (data && !data.error) {
-                    // @ts-ignore
-                    sap.m.MessageToast.show("Usuario desactivado correctamente");
-                    that.loadUsers();
-                    that.getView().getModel("viewModel").setProperty("/buttonsEnabled", false);
-                } else {
-                    // @ts-ignore
-                    sap.m.MessageBox.error("Error al desactivar usuario: " + (data.message || "No se pudo desactivar el usuario."));
+                var errorObj = (data && Array.isArray(data.value) && data.value[0] && data.value[0].error) ? data.value[0] : data;
+                if (errorObj && errorObj.error) {
+                    sap.m.MessageBox.error("Error al desactivar usuario: " + (errorObj.message || "No se pudo desactivar el usuario."));
+                    return;
                 }
+                sap.m.MessageToast.show("Usuario desactivado correctamente");
+                that.loadUsers();
+                that.getView().getModel("viewModel").setProperty("/buttonsEnabled", false);
             })
             .catch(err => {
-                // @ts-ignore
                 sap.m.MessageBox.error("Error de red al desactivar usuario: " + err.message);
             });
         },
+
         // ============= FIN DESACTIVAR USER (DELETE LÓGICO) =============
 
 
@@ -560,7 +629,7 @@ sap.ui.define([
         /**
          * Función onActivateUser.
          */
-        onActivateUser: function(){
+        onActivateUser: function () {
             if (this.selectedUser) {
                 var that = this;
                 MessageBox.confirm("¿Deseas activar el usuario con nombre: " + this.selectedUser.USERNAME + "?", {
@@ -572,31 +641,30 @@ sap.ui.define([
                         }
                     }
                 });
-            }else{
+            } else {
                 MessageToast.show("Selecciona un usuario para activar");
             }
         },
 
         // ============= ACTIVAR USER =============
-        activateUser: function(UserId){
+        activateUser: function (UserId) {
             var that = this;
-            fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=activate&userid=" + encodeURIComponent(UserId), {
+            var regUser = sessionStorage.getItem("USERID");
+            fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=activate&userid=" + encodeURIComponent(UserId) + "&RegUser=" + regUser, {
                 method: "POST"
             })
             .then(res => res.json())
             .then(data => {
-                if (data && !data.error) {
-                    // @ts-ignore
-                    sap.m.MessageToast.show("Usuario activado correctamente");
-                    that.loadUsers();
-                    that.getView().getModel("viewModel").setProperty("/buttonsEnabled", false);
-                } else {
-                    // @ts-ignore
-                    sap.m.MessageBox.error("Error al activar usuario: " + (data.message || "No se pudo activar el usuario."));
+                var errorObj = (data && Array.isArray(data.value) && data.value[0] && data.value[0].error) ? data.value[0] : data;
+                if (errorObj && errorObj.error) {
+                    sap.m.MessageBox.error("Error al activar usuario: " + (errorObj.message || "No se pudo activar el usuario."));
+                    return;
                 }
+                sap.m.MessageToast.show("Usuario activado correctamente");
+                that.loadUsers();
+                that.getView().getModel("viewModel").setProperty("/buttonsEnabled", false);
             })
             .catch(err => {
-                // @ts-ignore
                 sap.m.MessageBox.error("Error de red al activar usuario: " + err.message);
             });
         },
@@ -634,7 +702,7 @@ sap.ui.define([
             //Aplicar el filtro de búsqueda para la tabla
         },
 
-        onRefresh: function(){
+        onRefresh: function () {
             this.loadUsers();
         },
 
@@ -643,20 +711,34 @@ sap.ui.define([
         //=========== Validar email y phonenumber ===========
         //===================================================
 
-        isValidEmail: function(email) {
+        isValidEmail: function (email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return emailRegex.test(email);
         },
 
-        isValidPhoneNumber: function(phone) {
+        isValidPhoneNumber: function (phone) {
             return /^\d{10}$/.test(phone); // Ejemplo: 10 dígitos numéricos
         },
 
-        formatStatus: function(detailRow) {
+        formatStatus: function (detailRow) {
             if (!detailRow) return "";
             if (detailRow.DELETED) return "Eliminado";
             if (detailRow.ACTIVED) return "Activo";
             return "Desactivado";
+        },
+
+        onCompanySelected: function (oEvent) {
+            // Actualiza COMPANYALIAS en el modelo según la selección
+            var oComboBox = oEvent.getSource();
+            var sSelectedKey = oComboBox.getSelectedKey();
+            var sSelectedAlias = oComboBox.getSelectedItem().getKey(); // O usa otro campo si tu modelo lo requiere
+
+            var oModel = this.getView().getModel("newUserModel");
+            oModel.setProperty("/COMPANYID", sSelectedKey);
+            oModel.setProperty("/COMPANYALIAS", sSelectedAlias);
+
+            // Carga los departamentos dependientes
+            this.loadDeptos();
         }
 
     });

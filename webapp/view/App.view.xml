@@ -23,7 +23,7 @@
             id="mainAvatar" 
             src="{appView>/currentUser/AVATAR}"
             visible="{= ${appView>/isLoggedIn} }"
-            press=".onUserPress" />        
+            press=".logout" />        
         </f:profile>
       </f:ShellBar>
     </tnt:header>

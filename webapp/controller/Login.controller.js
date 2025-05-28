@@ -49,7 +49,6 @@ sap.ui.define([
         });
 
         if (!user) {
-          // @ts-ignore
           sap.m.MessageToast.show("Correo o contraseña incorrectos");
           console.log("Usuario no encontrado");
           return;
@@ -57,7 +56,10 @@ sap.ui.define([
 
         console.log("Usuario encontrado:", user);
 
-        // Guarda el USERNAME en sessionStorage
+        // Guarda el USERID en sessionStorage (NO el USERNAME)
+        sessionStorage.setItem("USERID", user.USERID);
+
+        // Si quieres mostrar el nombre en la app, también puedes guardar el USERNAME aparte si lo necesitas
         sessionStorage.setItem("USERNAME", user.USERNAME);
 
         // Guarda el usuario autenticado en appView
