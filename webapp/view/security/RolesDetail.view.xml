@@ -75,7 +75,6 @@
               </tl:template>
             </tl:Column>
 
-
             <tl:Column>
               <m:Label text="Pagina" />
               <tl:template>
@@ -89,9 +88,6 @@
                 <m:Text text="{selectedRole>APPLICATIONNAME}" />
               </tl:template>
             </tl:Column>
-
-        
-
           
           </tl:columns>
         </tl:Table>

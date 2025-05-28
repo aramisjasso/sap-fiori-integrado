@@ -77,14 +77,15 @@
                         <m:Column><m:Text text="Proceso" /></m:Column>
                         <m:Column><m:Text text="Página" /></m:Column>
                         <m:Column><m:Text text="Aplicación" /></m:Column>
-
                         <m:Column width="5rem" /> <!-- Columna vacía para el botón -->
                       </m:columns>
                       <m:items>
                         <m:ColumnListItem>
                           <m:cells>
-                            <m:Text text="{newRoleModel>PROCESSID}" />
                             <m:Text text="{= ${newRoleModel>PRIVILEGEID}.join(', ')}" />
+                            <m:Text text="{newRoleModel>PROCESSID}" />
+                            <m:Text text="{newRoleModel>VIEWNAME}" />
+                            <m:Text text="{newRoleModel>APPLICATIONNAME}" />
                             <m:Button icon="sap-icon://decline" type="Reject" press=".onRemovePrivilege" tooltip="Eliminar" />
                           </m:cells>
                         </m:ColumnListItem>

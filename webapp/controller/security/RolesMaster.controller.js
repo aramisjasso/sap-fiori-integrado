@@ -110,27 +110,35 @@ onInit: function () {
     },
 
 //Agregar privilegios al rol
-    onAddPrivilege: function () {
-      const oModel = this.getView().getModel("newRoleModel");
-      const oData = oModel.getData();
+onAddPrivilege: function () {
+  const oModel = this.getView().getModel("newRoleModel");
+  const oData = oModel.getData();
 
+  if (!oData.NEW_PROCESSID || !Array.isArray(oData.NEW_PRIVILEGES) || oData.NEW_PRIVILEGES.length === 0) {
+    MessageToast.show("Selecciona proceso y al menos un privilegio.");
+    return;
+  }
 
-      if (!oData.NEW_PROCESSID || !Array.isArray(oData.NEW_PRIVILEGES) || oData.NEW_PRIVILEGES.length === 0) {
-        MessageToast.show("Selecciona proceso y al menos un privilegio.");
-        return;
-      }
+  // Obtener los textos de página y aplicación seleccionada
+  const viewModel = this.getView().getModel("viewCatalogModel");
+  const appModel = this.getView().getModel("applicationCatalogModel");
 
+  const selectedView = viewModel.getProperty("/values").find(v => v.VALUEID === oData.NEW_VIEWID);
+  const selectedApp = appModel.getProperty("/values").find(a => a.VALUEID === oData.NEW_APPID);
 
-      oData.PRIVILEGES.push({
-        PROCESSID: oData.NEW_PROCESSID,
-        PRIVILEGEID: oData.NEW_PRIVILEGES
-      });
+  oData.PRIVILEGES.push({
+    PROCESSID: oData.NEW_PROCESSID,
+    PRIVILEGEID: oData.NEW_PRIVILEGES,
+    VIEWID: oData.NEW_VIEWID,
+    VIEWNAME: selectedView ? selectedView.VALUE : "",
+    APPLICATIONID: oData.NEW_APPID,
+    APPLICATIONNAME: selectedApp ? selectedApp.VALUE : ""
+  });
 
-
-      oData.NEW_PROCESSID = "";
-      oData.NEW_PRIVILEGES = [];
-      oModel.setData(oData);
-    },
+  oData.NEW_PROCESSID = "";
+  oData.NEW_PRIVILEGES = [];
+  oModel.setData(oData);
+},
 
 //Guardar el rol
   onSaveRole: async function () {
@@ -368,7 +376,6 @@ onActivateRole: function () {
       try {
         const response = await fetch(`http://localhost:3033/api/catalogos/getAllLabels?type=value&labelID=${labelId}`);
         const data = await response.json();
-        //const values = data.value?.[0]?.VALUES || []; //PENDIENTE 
         const values = data.value || [];
         this.getView().setModel(new JSONModel({ values, valuesAll: values }), modelName);
       } catch (err) {
@@ -557,28 +564,25 @@ _handleRoleAction: async function (options) {
     },
 
 // Cuando le doy a seleccionas una aplicación
-onApplicationChange: async function (oEvent) {
+onApplicationChange: function (oEvent) {
   const sAppId = oEvent.getSource().getSelectedKey();
-  const allViews = this.getView().getModel("viewCatalogModel").getData().valuesAll || [];
-  const filteredViews = allViews.filter(view => view.VALUEPAID === sAppId);
-  this.getView().setModel(new JSONModel({ values: filteredViews }), "viewCatalogModel");
 
-  // Limpia selección de view y proceso
+  // Solo actualiza la aplicación seleccionada en el modelo
   const oModel = this.getView().getModel("newRoleModel");
-  oModel.setProperty("/NEW_VIEWID", "");
-  oModel.setProperty("/NEW_PROCESSID", "");
+  oModel.setProperty("/NEW_APPID", sAppId);
+
+  // (Opcional) limpia vista y proceso
+   oModel.setProperty("/NEW_VIEWID", "");
+   oModel.setProperty("/NEW_PROCESSID", "");
+
+  console.log("Aplicación seleccionada:", sAppId);
 },
 
-// Cuando seleccionas una view
-onViewChange: async function (oEvent) {
-  const sViewId = oEvent.getSource().getSelectedKey();
-  const allProcesses = this.getView().getModel("processCatalogModel").getData().valuesAll || [];
-  const filteredProcesses = allProcesses.filter(proc => proc.VALUEPAID === sViewId);
-  this.getView().setModel(new JSONModel({ values: filteredProcesses }), "processCatalogModel");
 
-  // Limpia selección de proceso
-  const oModel = this.getView().getModel("newRoleModel");
-  oModel.setProperty("/NEW_PROCESSID", "");
+// Cuando seleccionas una view y se despliega, bueno arriba se despliegan datos
+onViewChange: async function (oEvent) {
+
+  console.log("Vista seleccionada:", oEvent.getSource().getSelectedKey());
 },
 
 
