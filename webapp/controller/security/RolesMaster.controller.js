@@ -366,7 +366,7 @@ onActivateRole: function () {
     //Cargar los catalogos
     loadCatalog: async function (labelId, modelName) {
       try {
-        const response = await fetch(`http://localhost:3033/api/catalogos/getAllLabels?type=value&labelid=${labelId}`);
+        const response = await fetch(`http://localhost:3033/api/catalogos/getAllLabels?type=value&labelID=${labelId}`);
         const data = await response.json();
         //const values = data.value?.[0]?.VALUES || []; //PENDIENTE 
         const values = data.value || [];
