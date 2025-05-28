@@ -352,9 +352,10 @@ onActivateRole: function () {
     },
 
 
+    //Cargar los catalogos
     loadCatalog: async function (labelId, modelName) {
       try {
-        //const response = await fetch(`http://localhost:3033/api/sec/usersroles/catalogsR?procedure=get&type=bylabelid&&labelid=${labelId}`);
+        const response = await fetch(`http://localhost:3033/api/catalogos/getAllLabels?type=label&labelid=${labelId}`);
         const data = await response.json();
         const values = data.value?.[0]?.VALUES || [];
         this.getView().setModel(new JSONModel({ values }), modelName);
@@ -372,20 +373,16 @@ onActivateRole: function () {
     return;
   }
 
-
-  const oRolesView = this.getView().getParent().getParent(); // sube hasta Roles.view
+  const oRolesView = this.getView().getParent().getParent();
   const oUiStateModel = oRolesView.getModel("uiState");
-
 
   if (oUiStateModel) {
     oUiStateModel.setProperty("/isDetailVisible", true);
   }
 
-
   const oRole = oTable.getContextByIndex(iIndex).getObject();
   const sId = encodeURIComponent(oRole.ROLEID);
-
-
+  
   try {
     const res = await fetch(`http://localhost:3033/api/sec/usersroles/rolesCRUD?procedure=get&type=all&roleid=${sId}`, {
       method: "POST"
@@ -398,10 +395,6 @@ onActivateRole: function () {
       return;
     }
 
-
-    console.log("📦 Resultado del fetch get role:", result);
-
-
     // Buscar el rol exacto en el arreglo result.value
     const selectedRole = result.value.find(r => r.ROLEID === oRole.ROLEID);
 
@@ -411,17 +404,12 @@ onActivateRole: function () {
       return;
     }
 
-
-    this.getOwnerComponent().setModel(new JSONModel(selectedRole), "selectedRole");
+  this.getOwnerComponent().setModel(new JSONModel(selectedRole), "selectedRole");
   } catch (e) {
     MessageBox.error("Error al obtener el rol: " + e.message);
   }
-
-
-  console.log("👉 Se ejecutó onRoleSelected");
+  
 },
-
-
 
 
     onMultiSearch: function () {
@@ -501,7 +489,6 @@ _handleRoleAction: async function (options) {
             if (result && !result.error) {
               MessageToast.show(options.successMessage);
               that.loadRolesData(); // Esto refresca todo el modelo y la tabla
-              // ...recarga detalle si quieres...
             } else {
               MessageBox.error("Error: " + (result?.message || "desconocido"));
             }
