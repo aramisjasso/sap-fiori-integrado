@@ -137,6 +137,31 @@
                                                                               value="{strategyResultModel>SHORT_MA}"/>
                                                     <viz.data:MeasureDefinition name="LongMA" 
                                                                               value="{strategyResultModel>LONG_MA}"/>
+
+                                                    <viz.data:MeasureDefinition
+                                                        name="SHORT_MA"
+                                                        value="{SHORT_MA}"
+                                                    />
+                                                    <viz.data:MeasureDefinition
+                                                        name="LONG_MA"
+                                                        value="{LONG_MA}"
+                                                    />
+                                                    <viz.data:MeasureDefinition
+                                                        name="RSI"
+                                                        value="{RSI}"
+                                                    />
+                                                    <viz.data:MeasureDefinition
+                                                        name="SMA"
+                                                        value="{SMA}"
+                                                    />
+                                                    <viz.data:MeasureDefinition
+                                                        name="MA"
+                                                        value="{MA}"
+                                                    />
+                                                    <viz.data:MeasureDefinition
+                                                        name="ATR"
+                                                        value="{ATR}"
+                                                    />
                                                     <viz.data:MeasureDefinition name="Señal BUY" 
                                                                               value="{strategyResultModel>BUY_SIGNAL}"/>
                                                     <viz.data:MeasureDefinition name="Señal SELL" 

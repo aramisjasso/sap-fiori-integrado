@@ -378,62 +378,94 @@ sap.ui.define([
         });
 
         // Actualizar balance
-        // var currentBalance = oStrategyModel.getProperty("/balance") || 0;
-        // var gainPerShare = data.result || 0;
-        // var stock = oStrategyModel.getProperty("/stock") || 1;
-        // var totalGain = +(gainPerShare * stock).toFixed(2);
+        var currentBalance = oStrategyModel.getProperty("/balance") || 0;
+        var gainPerShare = data.SUMMARY?.REAL_PROFIT  || 0;
+        var stock = oStrategyModel.getProperty("/stock") || 1;
+        var totalGain = +(gainPerShare * stock).toFixed(2);
         
-        // oStrategyModel.setProperty("/balance", currentBalance + totalGain);
-        // MessageToast.show(`Se añadieron $${totalGain} a tu balance.`);
+        oStrategyModel.setProperty("/balance", currentBalance + totalGain);
+        MessageToast.show(`Se añadieron $${totalGain} a tu balance.`);
     },
 
-  _prepareTableData: function(aData, aSignals) {
-      if (!Array.isArray(aData)) return [];
-      
-      const oDateFormat = DateFormat.getDateInstance({ pattern: "dd/MM/yyyy" });
-      let currentShares = 0; // Rastrea las acciones en tiempo real
-      
-      return aData.map(oItem => {
-          // Ajuste para el nuevo formato de fecha (ya viene como string "YYYY-MM-DD")
-          const oDate = typeof oItem.DATE === 'string' 
-              ? new Date(oItem.DATE) 
-              : (oItem.DATE instanceof Date ? oItem.DATE : new Date(oItem.date));
-          
-          const sDateKey = oDate.toISOString().split('T')[0]; // Para comparar fechas en formato YYYY-MM-DD
-          
-          // Buscar señal correspondiente a esta fecha (ahora SIGNALS viene en el formato nuevo)
-          const oSignal = aSignals.find(s => s.DATE === sDateKey);
+    _prepareTableData: function(aData, aSignals) {
+        if (!Array.isArray(aData)) return [];
+        
+        const oDateFormat = DateFormat.getDateInstance({ pattern: "dd/MM/yyyy" });
+        let currentShares = 0;
+        
+        return aData.map(oItem => {
+            const oDate = typeof oItem.DATE === 'string' 
+                ? new Date(oItem.DATE) 
+                : (oItem.DATE instanceof Date ? oItem.DATE : new Date(oItem.date));
+            
+            const sDateKey = oDate.toISOString().split('T')[0];
+            const oSignal = aSignals.find(s => s.DATE === sDateKey);
 
-          // Obtener valores de los indicadores del nuevo formato
-          const shortMA = oItem.INDICATORS?.find(i => i.INDICATOR === 'short_ma')?.VALUE;
-          const longMA = oItem.INDICATORS?.find(i => i.INDICATOR === 'long_ma')?.VALUE;
+            // Extracción de todos los indicadores necesarios
+            const indicators = {
+                short_ma: null,
+                long_ma: null,
+                rsi: null,
+                sma: null,
+                ma: null,
+                atr: null,
+                adx: null
+            };
 
-          // Actualizar el acumulado de acciones (usando el nuevo formato de señales)
-          if (oSignal) {
-              currentShares = oSignal.SHARES || 0;
-          }
-          
-          return {
-              DATE: oDateFormat.format(oDate),
-              DATE_GRAPH: oDate,
-              OPEN: oItem.OPEN,
-              HIGH: oItem.HIGH,
-              LOW: oItem.LOW,
-              CLOSE: oItem.CLOSE,
-              VOLUME: oItem.VOLUME,
-              SHORT_MA: shortMA,
-              LONG_MA: longMA,
-              INDICATORS: shortMA && longMA 
-                  ? `MA(${shortMA.toFixed(2)}/${longMA.toFixed(2)})` 
-                  : "-",
-              SIGNALS: oSignal?.TYPE?.toUpperCase() || "-", // "BUY", "SELL" o vacío
-              RULES: oSignal?.REASONING || "-",
-              SHARES: currentShares.toFixed(4),  // Muestra el acumulado diario
-              BUY_SIGNAL: oSignal?.TYPE?.toLowerCase() === 'buy' ? oItem.CLOSE : null,
-              SELL_SIGNAL: oSignal?.TYPE?.toLowerCase() === 'sell' ? oItem.CLOSE : null,
-          };
-      });
-  },
+            if (Array.isArray(oItem.INDICATORS)) {
+                oItem.INDICATORS.forEach(indicator => {
+                    const key = indicator.INDICATOR.toLowerCase();
+                    if (indicators.hasOwnProperty(key)) {
+                        indicators[key] = parseFloat(indicator.VALUE);
+                    }
+                });
+            }
+
+            // Construcción del texto de indicadores para la tabla
+            const indicatorParts = [];
+            if (indicators.short_ma !== null) indicatorParts.push(`SMA Corta: ${indicators.short_ma.toFixed(2)}`);
+            if (indicators.long_ma !== null) indicatorParts.push(`SMA Larga: ${indicators.long_ma.toFixed(2)}`);
+            if (indicators.rsi !== null) indicatorParts.push(`RSI: ${indicators.rsi.toFixed(2)}`);
+            if (indicators.sma !== null) indicatorParts.push(`SMA: ${indicators.sma.toFixed(2)}`);
+            if (indicators.ma !== null) indicatorParts.push(`MA: ${indicators.ma.toFixed(2)}`);
+            if (indicators.atr !== null) indicatorParts.push(`ATR: ${indicators.atr.toFixed(2)}`);
+            if (indicators.adx !== null) indicatorParts.push(`ADX: ${indicators.adx.toFixed(2)}`);
+
+            // Actualización de acciones
+            if (oSignal) {
+                currentShares = oSignal.SHARES || 0;
+            }
+            
+            return {
+                DATE: oDateFormat.format(oDate),
+                DATE_GRAPH: oDate,
+                OPEN: parseFloat(oItem.OPEN),
+                HIGH: parseFloat(oItem.HIGH),
+                LOW: parseFloat(oItem.LOW),
+                CLOSE: parseFloat(oItem.CLOSE),
+                VOLUME: parseFloat(oItem.VOLUME),
+                
+                // Indicadores para el gráfico
+                SHORT_MA: indicators.short_ma,
+                LONG_MA: indicators.long_ma,
+                RSI: indicators.rsi,
+                SMA: indicators.sma,
+                MA: indicators.ma,
+                ATR: indicators.atr,
+                ADX: indicators.adx,
+                
+                // Señales
+                BUY_SIGNAL: oSignal?.TYPE?.toLowerCase() === 'buy' ? parseFloat(oItem.CLOSE) : null,
+                SELL_SIGNAL: oSignal?.TYPE?.toLowerCase() === 'sell' ? parseFloat(oItem.CLOSE) : null,
+                
+                // Texto para tabla
+                INDICATORS: indicatorParts.length > 0 ? indicatorParts.join(", ") : "-",
+                SIGNALS: oSignal?.TYPE?.toUpperCase() || "-", 
+                RULES: oSignal?.REASONING || "-",
+                SHARES: currentShares.toFixed(2),
+            };
+        });
+    },
 
     onRefreshChart: function() {
       var oSymbolModel = this.getView().getModel("symbolModel");
@@ -699,9 +731,7 @@ sap.ui.define([
             FINAL_VALUE: simulationDetail.SUMMARY?.FINAL_VALUE || 0,
             FINAL_BALANCE: simulationDetail.SUMMARY?.FINAL_BALANCE || 0,
             REAL_PROFIT: simulationDetail.SUMMARY?.REAL_PROFIT || 0,
-            PERCENTAGE_RETURN: simulationDetail.SUMMARY?.PERCENTAGE_RETURN || 0,
-            originalData: simulationDetail // Guardar copia completa por si se necesita
-        });
+            PERCENTAGE_RETURN: simulationDetail.SUMMARY?.PERCENTAGE_RETURN || 0        });
         
         // Actualizar historial si es necesario
         if (oItem) {
