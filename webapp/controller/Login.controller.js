@@ -61,7 +61,7 @@ sap.ui.define([
 
         // Si quieres mostrar el nombre en la app, también puedes guardar el USERNAME aparte si lo necesitas
         sessionStorage.setItem("USERNAME", user.USERNAME);
-        sessionStorage.setItem("CAPITAL", user.CAPITAL);
+        sessionStorage.setItem("CAPITAL", user.CAPITAL.toString());
 
         // Guarda el usuario autenticado en appView
         const oAppModel = this.getOwnerComponent().getModel("appView");

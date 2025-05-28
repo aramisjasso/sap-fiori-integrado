@@ -109,7 +109,10 @@ sap.ui.define([
         this._oResourceBundle = oI18nModel.getResourceBundle();
         this.getView().getModel("strategyAnalysisModel").setProperty("/strategies", [
           { key: "", text: this._oResourceBundle.getText("selectStrategyPlaceholder") },
-          { key: "MACrossover", text: this._oResourceBundle.getText("movingAverageCrossoverStrategy") }
+          { key: "MACrossover", text: this._oResourceBundle.getText("movingAverageCrossoverStrategy") },
+          { key: "Reversión Simple", text: this._oResourceBundle.getText("reversionSimpleStrategy")},
+          { key: "Supertrend", text: this._oResourceBundle.getText("supertrendStrategy")},
+          { key: "Momentum", text: this._oResourceBundle.getText("momentumStrategy")}
         ]);
       } catch (error) {
         console.error("Error al cargar ResourceBundle:", error);
