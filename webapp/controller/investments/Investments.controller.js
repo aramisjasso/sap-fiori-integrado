@@ -54,7 +54,7 @@ sap.ui.define([
 
       // Modelo de análisis de estrategia
       this.getView().setModel(new JSONModel({
-        balance: this._CONSTANTS.DEFAULT_BALANCE,
+        balance: sessionStorage.getItem("CAPITAL") || this._CONSTANTS.DEFAULT_BALANCE,
         amount: this._CONSTANTS.DEFAULT_AMOUNT,
         strategyKey: "",
         longSMA: this._CONSTANTS.DEFAULT_LONG_SMA,
@@ -108,7 +108,10 @@ sap.ui.define([
         this._oResourceBundle = oI18nModel.getResourceBundle();
         this.getView().getModel("strategyAnalysisModel").setProperty("/strategies", [
           { key: "", text: this._oResourceBundle.getText("selectStrategyPlaceholder") },
-          { key: "MACrossover", text: this._oResourceBundle.getText("movingAverageCrossoverStrategy") }
+          { key: "MACrossover", text: this._oResourceBundle.getText("movingAverageCrossoverStrategy") },
+          { key: "Reversión Simple", text: this._oResourceBundle.getText("reversionSimpleStrategy")},
+          { key: "Supertrend", text: this._oResourceBundle.getText("supertrendStrategy")},
+          { key: "Momentum", text: this._oResourceBundle.getText("momentumStrategy")}
         ]);
       } catch (error) {
         console.error("Error al cargar ResourceBundle:", error);
@@ -160,10 +163,16 @@ sap.ui.define([
             }
 
             const data = await response.json();
+            const oDateFormat = DateFormat.getDateInstance({ pattern: "dd/MM/yyyy" });
             
             const chartData = data.value.map(item => ({
                 DATE_GRAPH: new Date(item.DATE),
-                CLOSE: item.CLOSE
+                DATE: item.DATE,
+                OPEN: item.OPEN,
+                HIGH: item.HIGH,
+                LOW: item.LOW,
+                CLOSE: item.CLOSE,
+                VOLUME: item.VOLUME
             }));
 
             const oResultModel = this.getView().getModel("strategyResultModel");

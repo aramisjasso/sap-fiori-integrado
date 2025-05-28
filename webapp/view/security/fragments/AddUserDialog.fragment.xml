@@ -85,30 +85,27 @@
           placeholder="URL del Avatar (texto)"
           value="{newUserModel>/AVATAR}" />
 
-      <!-- Combobox: Compañía -->
+      <!-- ComboBox de compañías -->
       <ComboBox
           id="comboBoxCompanies"
-          items="{/companies}"
-          selectedKey="{newUserModel>/COMPANY}"
+          items="{companies>/companies}"
+          selectedKey="{newUserModel>/COMPANYID}"
           selectionChange="onCompanySelected"
           placeholder="Compañía (selecciona)">
         <core:Item
-            id="CompanyItem"
-            key="{COMPANYID}"
-            text="{COMPANYNAME}" />
+            key="{companies>COMPANYID}"
+            text="{companies>COMPANYNAME}" />
       </ComboBox>
 
-      <!-- Combobox: Departamento (CEDIS) -->
+      <!-- ComboBox de departamentos -->
       <ComboBox
           id="comboBoxCedis"
-          items="{/cedis}"
-          selectionChange="onCediSelected"
-          selectedKey="{newUserModel>/DEPARTMENT}"
+          items="{departments>/departments}"
+          selectedKey="{newUserModel>/DEPARTMENTID}"
           placeholder="Departamento (selecciona)">
         <core:Item
-            id="CediItem"
-            key="{CEDIID}"
-            text="{CEDINAME}" />
+            key="{departments>DEPARTMENTID}"
+            text="{departments>DEPARTMENTNAME}" />
       </ComboBox>
 
       <!-- Combobox: Roles -->

@@ -18,9 +18,12 @@
         homeIcon="./resources/images/logo_sap.png"
         menuButtonPressed=".onToggleSideNav">
         <f:profile>
-          <Avatar id="mainAvatar" initials="{appView>/currentUser/initials}"
+          <!-- Avatar simple con la URL del usuario -->
+          <Avatar 
+            id="mainAvatar" 
+            src="{appView>/currentUser/AVATAR}"
             visible="{= ${appView>/isLoggedIn} }"
-            press=".onUserPress"  />        
+            press=".logout" />        
         </f:profile>
       </f:ShellBar>
     </tnt:header>
@@ -62,7 +65,7 @@
               key="roles"
               text="Gestión de Roles"
               icon="sap-icon://key" />
-            <!-- Gestión de Roles -->
+            <!-- Gestión de Usuarios -->
             <tnt:NavigationListItem
               id="navItemUsers"
               key="users"

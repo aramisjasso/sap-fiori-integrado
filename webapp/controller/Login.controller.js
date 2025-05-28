@@ -2,6 +2,7 @@ sap.ui.define([
   "sap/ui/core/mvc/Controller",
   "sap/ui/model/json/JSONModel",
   "sap/m/MessageToast"
+// @ts-ignore
 ], function (Controller, JSONModel, MessageToast) {
   "use strict";
 
@@ -11,62 +12,73 @@ sap.ui.define([
         email: "",
         password: ""
       }), "loginModel");
-
     },
 
-onLoginPress: async function () {
+    onLoginPress: async function () {
       const oLogin = this.getView().getModel("loginModel").getData();
 
-/*       try {
-        const response = await fetch("http://localhost:4004/api/sec/usersCRUD?procedure=getall", {
+      try {
+        // Llama a tu API para obtener todos los usuarios
+        const response = await fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=get&type=all", {
           method: "POST"
         });
 
         const result = await response.json();
-        const userList = Array.isArray(result.value) ? result.value : [];
+        console.log("Respuesta completa:", result);
+        
+        // Corrige el acceso a los datos - la estructura es: result.value (array de usuarios)
+        let userList = [];
+        if (result && result.value && Array.isArray(result.value)) {
+          userList = result.value;
+        } else if (Array.isArray(result)) {
+          userList = result;
+        }
 
-        console.log("email:", oLogin.email);
-        console.log("contra::", oLogin.password);
+        console.log("Lista de usuarios procesada:", userList);
 
-        //  Búsqueda por EMAIL y PASSWORD reales
-        const user = userList.find(u =>
-          (u.EMAIL || "").trim().toLowerCase() === oLogin.email.trim().toLowerCase() &&
-          (u.PASSWORD || "").trim() === oLogin.password.trim()
-        );
+        // Busca usuario por email y password
+        const user = userList.find(u => {
+          const userEmail = (u.EMAIL || "").trim().toLowerCase();
+          const userPassword = (u.PASSWORD || "").trim();
+          const inputEmail = oLogin.email.trim().toLowerCase();
+          const inputPassword = oLogin.password.trim();
+          
+          console.log(`Comparando: ${userEmail} === ${inputEmail} && ${userPassword} === ${inputPassword}`);
+          
+          return userEmail === inputEmail && userPassword === inputPassword;
+        });
 
         if (!user) {
-          MessageToast.show("Correo o contraseña incorrectos");
+          sap.m.MessageToast.show("Correo o contraseña incorrectos");
+          console.log("Usuario no encontrado");
           return;
         }
 
-        const first = user.FIRSTNAME || "";
-        const last = user.LASTNAME || "";
-        user.initials = first && last
-          ? first.charAt(0).toUpperCase() + last.charAt(0).toUpperCase()
-          : "US";
+        console.log("Usuario encontrado:", user);
 
+        // Guarda el USERID en sessionStorage (NO el USERNAME)
+        sessionStorage.setItem("USERID", user.USERID);
+
+        // Si quieres mostrar el nombre en la app, también puedes guardar el USERNAME aparte si lo necesitas
+        sessionStorage.setItem("USERNAME", user.USERNAME);
+        sessionStorage.setItem("CAPITAL", user.CAPITAL.toString());
 
         // Guarda el usuario autenticado en appView
         const oAppModel = this.getOwnerComponent().getModel("appView");
         oAppModel.setProperty("/isLoggedIn", true);
         oAppModel.setProperty("/currentUser", user);
 
-        console.log(" Usuario autenticado y guardado:", user);
-
         // Navega a la vista principal
         this.getOwnerComponent().getRouter().navTo("RouteMain");
 
       } catch (error) {
-        console.error(" Error al autenticar:", error);
-        MessageToast.show("Error al conectar con la API");
-      } */
-      const oAppModel = this.getOwnerComponent().getModel("appView");
-      oAppModel.setProperty("/isLoggedIn", true);
-      this.getOwnerComponent().getRouter().navTo("RouteMain");
+        console.error("Error al autenticar:", error);
+        // @ts-ignore
+        sap.m.MessageToast.show("Error al conectar con la API");
+      }
+    },
 
-    } ,
-
-      //Funcion para el ojito
+    //Funcion para el ojito
     onVerContraseña: function () {
       const oInput = this.byId("passwordInput");
       const bCurrentType = oInput.getType() === "Text";
