@@ -16,6 +16,9 @@ sap.ui.define([
 
       if (oProcessModel) this.getView().setModel(oProcessModel, "processCatalogModel");
       if (oPrivilegeModel) this.getView().setModel(oPrivilegeModel, "privilegeCatalogModel");
+
+    const oRouter = this.getOwnerComponent().getRouter();
+    oRouter.getRoute("RouteRoleDetail").attachMatched(this._onRouteMatched, this);
     },
 
     loadCatalogsOnce: async function () {
@@ -27,7 +30,7 @@ sap.ui.define([
 
     loadCatalog: async function (labelId, modelName) {
       try {
-        //const res = await fetch(`http://localhost:3033/api/sec/usersroles/catalogsR?procedure=get&type=bylabelid&labelid=${labelId}`);
+        const res = await fetch(`http://localhost:3033/api/catalogos/getAllLabels?type=label&labelid=${labelId}`);
         const data = await res.json();
         const values = data.value?.[0]?.VALUES || [];
         this.getView().setModel(new JSONModel({ values }), modelName);
@@ -36,7 +39,7 @@ sap.ui.define([
       }
     },
 
-    _onRouteMatched: function (oEvent) {
+    _onRouteMatched: async function (oEvent) {
       const sRoleId = decodeURIComponent(oEvent.getParameter("arguments").roleId);
       const oModel = this.getOwnerComponent().getModel("roles");
 
@@ -53,7 +56,22 @@ sap.ui.define([
         return;
       }
 
-      this.getView().setModel(new JSONModel(oRole), "selectedRole");
+     // Llama al backend para obtener los usuarios asociados a este rol
+      try {
+        const res = await fetch(`http://localhost:3033/api/sec/usersroles/rolesCRUD?procedure=get&type=users&roleid=${sRoleId}`);
+        const data = await res.json();
+        const users = data.value || [];
+
+
+        //Agrega los usuarios al modelo del rol
+        oRole.USERS = users;
+
+        //Asigna el modelo a la vista
+        this.getView().setModel(new JSONModel(oRole), "selectedRole");
+      } catch (err) {
+        Log.error("Error cargando usuarios del rol", err);
+        MessageToast.show("Error cargando usuarios del rol.");
+      }
     },
     
 onCatalogsPress: function () {
