@@ -16,11 +16,10 @@ sap.ui.define([
   return Controller.extend("com.invertions.sapfiorimodinv.controller.investments.Investments", {
     // Variables de clase
     _oResourceBundle: null,
-    _sSidebarOriginalSize: "380px",
 
     // CONSTANTES
     _CONSTANTS: {
-      DEFAULT_BALANCE: 1000,
+        DEFAULT_BALANCE: 1000,
       DEFAULT_AMOUNT: 100,
       DEFAULT_SHORT_SMA: 50,
       DEFAULT_LONG_SMA: 200,
@@ -333,7 +332,6 @@ sap.ui.define([
         const data = await response.json();
         await this._handleAnalysisResponse(data.value[0], oStrategyModel, oResultModel);
         
-        // Quitar el loading solo después de procesar los datos
         oResultModel.setProperty("/isLoading", false);
     } catch (error) {
         console.error("Error:", error);
@@ -611,6 +609,13 @@ sap.ui.define([
             // 2. Actualizar modelos
             const oStrategyModel = this.getView().getModel("strategyAnalysisModel");
             const oResultModel = this.getView().getModel("strategyResultModel");
+
+            const oViewModel = this.getView().getModel("viewModel");
+            oViewModel.setProperty("/analysisPanelExpanded", false);
+            oViewModel.setProperty("/resultPanelExpanded", true);
+
+            oResultModel.setProperty("/isLoading", true);
+            
             
             this._updateModelsWithSimulationData({
                 simulationDetail,
@@ -619,6 +624,8 @@ sap.ui.define([
                 oItem: this._oSelectedStrategy
             });
             
+            oResultModel.setProperty("/isLoading", false);
+
             // 4. Cerrar y feedback
             this._oHistoryPopover.close();
             sap.m.MessageToast.show(`Estrategia ${simulationDetail.SIMULATIONNAME} cargada`);
@@ -628,6 +635,7 @@ sap.ui.define([
             sap.m.MessageBox.error("Error al cargar la estrategia");
         } finally {
             sap.ui.core.BusyIndicator.hide();
+            oResultModel.setProperty("/isLoading", false);
         }
     },
 
@@ -672,6 +680,7 @@ sap.ui.define([
         oStrategyModel.setProperty("/shortSMA", specsMap.SHORT_MA);
         oStrategyModel.setProperty("/longSMA", specsMap.LONG_MA);
         
+
         // Datos para strategyResultModel
         oResultModel.setData({
             hasResults: true,
