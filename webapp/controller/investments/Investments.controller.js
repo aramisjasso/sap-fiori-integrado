@@ -19,8 +19,8 @@ sap.ui.define([
 
     // CONSTANTES
     _CONSTANTS: {
-        DEFAULT_BALANCE: 1000,
-      DEFAULT_AMOUNT: 100,
+    DEFAULT_BALANCE: 1000,
+      DEFAULT_AMOUNT: 25,
       DEFAULT_SHORT_SMA: 50,
       DEFAULT_LONG_SMA: 200,
       URL_SIMULATION: "http://localhost:3033/api/inv/simulation?strategy=macrossover",
@@ -54,11 +54,21 @@ sap.ui.define([
 
       // Modelo de análisis de estrategia
       this.getView().setModel(new JSONModel({
-        balance: sessionStorage.getItem("CAPITAL") || this._CONSTANTS.DEFAULT_BALANCE,
+        balance: sessionStorage.getItem("CAPITAL"),
         amount: this._CONSTANTS.DEFAULT_AMOUNT,
         strategyKey: "",
+        // Parámetros para MACrossover
         longSMA: this._CONSTANTS.DEFAULT_LONG_SMA,
         shortSMA: this._CONSTANTS.DEFAULT_SHORT_SMA,
+        // Parámetros para Reversión Simple
+        rsi: 14,
+        // Parámetros para Supertrend
+        ma_length: 10,
+        atr: 10,
+        mult: 3.0,
+        rr: 2.0,
+        // Parámetros para Momentum
+        period: 14,
         startDate: null,
         endDate: null,
         controlsVisible: false,
@@ -108,10 +118,10 @@ sap.ui.define([
         this._oResourceBundle = oI18nModel.getResourceBundle();
         this.getView().getModel("strategyAnalysisModel").setProperty("/strategies", [
           { key: "", text: this._oResourceBundle.getText("selectStrategyPlaceholder") },
+          { key: "Momentum", text: this._oResourceBundle.getText("momentumStrategy")},
           { key: "MACrossover", text: this._oResourceBundle.getText("movingAverageCrossoverStrategy") },
           { key: "Reversión Simple", text: this._oResourceBundle.getText("reversionSimpleStrategy")},
           { key: "Supertrend", text: this._oResourceBundle.getText("supertrendStrategy")},
-          { key: "Momentum", text: this._oResourceBundle.getText("momentumStrategy")}
         ]);
       } catch (error) {
         console.error("Error al cargar ResourceBundle:", error);
@@ -195,50 +205,50 @@ sap.ui.define([
 
     // Configurar gráfico
     _onViewAfterRendering: function() {
-    const oVizFrame = this.byId("idVizFrame");
-    if (!oVizFrame) return;
+        const oVizFrame = this.byId("idVizFrame");
+        if (!oVizFrame) return;
 
-    oVizFrame.setVizProperties({
-        plotArea: { 
-            dataShape: { 
-                primaryAxis: ["line", "line", "line", "point", "point"]
+        oVizFrame.setVizProperties({
+            plotArea: { 
+                dataShape: { 
+                    primaryAxis: ["line", "line", "line", "line", "line", "point", "point"]
+                },
+                colorPalette: ["#0074D9", "#FFDC00", "#FFA500", "#B10DC9", "#39CCCC", "#2ecc40", "#ff4136"],
+                dataLabel: { visible: false },
+                marker: {
+                    visible: true,
+                    forceVisible: true,
+                    shape: ["circle", "circle", "circle", "triangleUp", "triangleDown"],
+                    size: 5,
+                },
+            
+                window: {
+                    start: "firstDataPoint",
+                    end: "lastDataPoint"
+                },
+                handleNull: "zero"
             },
-            colorPalette: ["#0074D9", "#FFDC00", "#FFA500", "#2ecc40", "#ff4136"],
-            dataLabel: { visible: false },
-            marker: {
+            valueAxis: { 
+                title: { text: "Precio de Cierre (USD)" }, 
+                visible: true 
+            },
+            timeAxis: {
+                title: { text: "Fecha" },
+                levels: ["day", "month", "year"],
+                label: { formatString: "dd/MM/yy" }
+            },
+            title: { text: "Histórico de Precios de Acciones" },
+            legend: { visible: true },
+            tooltip: {
                 visible: true,
-                forceVisible: true,
-                shape: ["circle", "circle", "circle", "triangleUp", "triangleDown"],
-                size: 5,
             },
-          
-            window: {
-                start: "firstDataPoint",
-                end: "lastDataPoint"
-            },
-            handleNull: "zero"
-        },
-        valueAxis: { 
-            title: { text: "Precio de Cierre (USD)" }, 
-            visible: true 
-        },
-        timeAxis: {
-            title: { text: "Fecha" },
-            levels: ["day", "month", "year"],
-            label: { formatString: "dd/MM/yy" }
-        },
-        title: { text: "Histórico de Precios de Acciones" },
-        legend: { visible: true },
-        tooltip: {
-            visible: true,
-        },
-        interaction: {
-            behaviorType : null,
-            zoom: { enablement: "enabled" },
-            selectability: { mode: "single" }
-        }
-    });
-  },
+            interaction: {
+                behaviorType : null,
+                zoom: { enablement: "enabled" },
+                selectability: { mode: "single" }
+            }
+        });
+    },
 
     // Métodos de fecha
     _setDefaultDates: function() {
@@ -308,6 +318,79 @@ sap.ui.define([
     },
 
     _callAnalysisAPISimulation: async function(sSymbol, oStrategyModel, oResultModel) {
+        const strategy = oStrategyModel.getProperty("/strategyKey");
+        let apiStrategyName = strategy;
+        
+        // Ajustar nombre de estrategia para API
+        switch(strategy) {
+            case "Momentum":
+                apiStrategyName = "momentum";
+                break;
+            case "Reversión Simple":
+                apiStrategyName = "reversionsimple";
+                break;
+            case "Supertrend":
+                apiStrategyName = "supertrend";
+                break;
+            case "MACrossover":
+                apiStrategyName = "macrossover";
+                break;
+            default:
+                throw new Error("Estrategia no soportada");
+        }
+
+        const API_URL = `http://localhost:3033/api/inv/simulation?strategy=${apiStrategyName}`;
+
+        // Configurar SPECS según la estrategia
+        let SPECS = [];
+        switch(apiStrategyName) {
+            case "reversionsimple":
+                SPECS = [{
+                    INDICATOR: "rsi",
+                    VALUE: oStrategyModel.getProperty("/rsi")
+                }];
+                break;
+            case "supertrend":
+                SPECS = [
+                    {
+                        INDICATOR: "ma_length",
+                        VALUE: oStrategyModel.getProperty("/ma_length")
+                    },
+                    {
+                        INDICATOR: "atr",
+                        VALUE: oStrategyModel.getProperty("/atr")
+                    },
+                    {
+                        INDICATOR: "mult",
+                        VALUE: oStrategyModel.getProperty("/mult")
+                    },
+                    {
+                        INDICATOR: "rr",
+                        VALUE: oStrategyModel.getProperty("/rr")
+                    }
+                ];
+                break;
+            case "momentum":
+                SPECS = [
+                    {
+                        INDICATOR: "period",
+                        VALUE: oStrategyModel.getProperty("/period") || 14
+                    }
+                ];
+                break;
+            default: // MACrossover
+                SPECS = [
+                    {
+                        INDICATOR: "SHORT_MA",
+                        VALUE: oStrategyModel.getProperty("/shortSMA")
+                    },
+                    {
+                        INDICATOR: "LONG_MA",
+                        VALUE: oStrategyModel.getProperty("/longSMA")
+                    }
+                ];
+        }
+
       var oRequestBody = {
         "SIMULATION": {
             "SYMBOL": sSymbol,
@@ -315,20 +398,11 @@ sap.ui.define([
             "ENDDATE": this._formatDate(oStrategyModel.getProperty("/endDate")),  
             "AMOUNT": oStrategyModel.getProperty("/amount"),
             "USERID": "ARAMIS",
-            "SPECS": [
-                {
-                    "INDICATOR": "SHORT_MA",
-                    "VALUE": oStrategyModel.getProperty("/shortSMA")
-                },
-                {
-                    "INDICATOR": "LONG_MA",
-                    "VALUE": oStrategyModel.getProperty("/longSMA")
-                }
-            ]
+            "SPECS": SPECS
         }
     };
       try {
-        const response = await fetch(this._CONSTANTS.URL_SIMULATION, {
+        const response = await fetch(API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(oRequestBody)
@@ -361,7 +435,7 @@ sap.ui.define([
             ),
             signals: data.SIGNALS || [],
             result: data.SUMMARY?.REAL_PROFIT || 0,
-            simulationName: "Moving Average Crossover",
+            strategy: data.STRATEGY,
             symbol: data.SYMBOL,
             startDate: oStrategyModel.getProperty("/startDate"),
             endDate: oStrategyModel.getProperty("/endDate"),
@@ -376,62 +450,101 @@ sap.ui.define([
         });
 
         // Actualizar balance
-        // var currentBalance = oStrategyModel.getProperty("/balance") || 0;
-        // var gainPerShare = data.result || 0;
-        // var stock = oStrategyModel.getProperty("/stock") || 1;
-        // var totalGain = +(gainPerShare * stock).toFixed(2);
+        var currentBalance = parseFloat(oStrategyModel.getProperty("/balance")) || 0;
+        var gainPerShare = parseFloat(oResultModel.getProperty("/REAL_PROFIT")) || 0;
+        var totalBalance = currentBalance + gainPerShare;
         
-        // oStrategyModel.setProperty("/balance", currentBalance + totalGain);
-        // MessageToast.show(`Se añadieron $${totalGain} a tu balance.`);
+        // Actualizar balance en modelo y sessionStorage
+        oStrategyModel.setProperty("/balance", totalBalance);
+        sessionStorage.setItem("CAPITAL", totalBalance.toString());
+        
+        // Mostrar mensaje con formato de número
+        MessageToast.show(`Se añadieron ${this.formatNumber(gainPerShare)} a tu balance.`);
     },
 
-  _prepareTableData: function(aData, aSignals) {
-      if (!Array.isArray(aData)) return [];
-      
-      const oDateFormat = DateFormat.getDateInstance({ pattern: "dd/MM/yyyy" });
-      let currentShares = 0; // Rastrea las acciones en tiempo real
-      
-      return aData.map(oItem => {
-          // Ajuste para el nuevo formato de fecha (ya viene como string "YYYY-MM-DD")
-          const oDate = typeof oItem.DATE === 'string' 
-              ? new Date(oItem.DATE) 
-              : (oItem.DATE instanceof Date ? oItem.DATE : new Date(oItem.date));
-          
-          const sDateKey = oDate.toISOString().split('T')[0]; // Para comparar fechas en formato YYYY-MM-DD
-          
-          // Buscar señal correspondiente a esta fecha (ahora SIGNALS viene en el formato nuevo)
-          const oSignal = aSignals.find(s => s.DATE === sDateKey);
+    _prepareTableData: function(aData, aSignals) {
+        if (!Array.isArray(aData)) return [];
+        
+        const oDateFormat = DateFormat.getDateInstance({ pattern: "dd/MM/yyyy" });
+        let currentShares = 0; // Rastrea las acciones en tiempo real
+        
+        return aData.map(oItem => {
+            const oDate = new Date(oItem.DATE);
+            const sDateKey = oDate.toISOString().split('T')[0];
+            const oSignal = aSignals.find(s => s.DATE === sDateKey);
 
-          // Obtener valores de los indicadores del nuevo formato
-          const shortMA = oItem.INDICATORS?.find(i => i.INDICATOR === 'short_ma')?.VALUE;
-          const longMA = oItem.INDICATORS?.find(i => i.INDICATOR === 'long_ma')?.VALUE;
+            // 1. Procesar indicadores según la estrategia
+            let indicatorText = "-";
+            let indicatorValues = {};
 
-          // Actualizar el acumulado de acciones (usando el nuevo formato de señales)
-          if (oSignal) {
-              currentShares = oSignal.SHARES || 0;
-          }
-          
-          return {
-              DATE: oDateFormat.format(oDate),
-              DATE_GRAPH: oDate,
-              OPEN: oItem.OPEN,
-              HIGH: oItem.HIGH,
-              LOW: oItem.LOW,
-              CLOSE: oItem.CLOSE,
-              VOLUME: oItem.VOLUME,
-              SHORT_MA: shortMA,
-              LONG_MA: longMA,
-              INDICATORS: shortMA && longMA 
-                  ? `MA(${shortMA.toFixed(2)}/${longMA.toFixed(2)})` 
-                  : "-",
-              SIGNALS: oSignal?.TYPE?.toUpperCase() || "-", // "BUY", "SELL" o vacío
-              RULES: oSignal?.REASONING || "-",
-              SHARES: currentShares.toFixed(4),  // Muestra el acumulado diario
-              BUY_SIGNAL: oSignal?.TYPE?.toLowerCase() === 'buy' ? oItem.CLOSE : null,
-              SELL_SIGNAL: oSignal?.TYPE?.toLowerCase() === 'sell' ? oItem.CLOSE : null,
-          };
-      });
-  },
+            if (Array.isArray(oItem.INDICATORS)) {
+            oItem.INDICATORS.forEach(indicator => {
+                const value = parseFloat(indicator.VALUE);
+                switch(indicator.INDICATOR.toLowerCase()) {
+                    case 'short_ma':
+                        indicatorValues.SHORT_MA = value;
+                        break;
+                    case 'long_ma':
+                        indicatorValues.LONG_MA = value;
+                        break;
+                    case 'rsi':
+                        indicatorValues.RSI = value;
+                        break;
+                    case 'momentum':
+                        indicatorValues.MOMENTUM = value;
+                        break;
+                    case 'ma_length':
+                        indicatorValues.MA = value;
+                        break;
+                    case 'atr':
+                        indicatorValues.ATR = value;
+                        break;
+                }
+            });
+
+            const parts = [];
+            if (indicatorValues.SHORT_MA && indicatorValues.LONG_MA) {
+                parts.push(`SMA(${indicatorValues.SHORT_MA.toFixed(2)}/${indicatorValues.LONG_MA.toFixed(2)})`);
+            }
+            if (indicatorValues.RSI) {
+                parts.push(`RSI: ${indicatorValues.RSI.toFixed(2)}`);
+            }
+            if (indicatorValues.MOMENTUM) {
+                parts.push(`MOM: ${indicatorValues.MOMENTUM.toFixed(2)}`);
+            }
+            if (indicatorValues.MA) {
+                parts.push(`MA: ${indicatorValues.MA.toFixed(2)}`);
+            }
+            if (indicatorValues.ATR) {
+                parts.push(`ATR: ${indicatorValues.ATR.toFixed(2)}`);
+            }
+            
+            indicatorText = parts.join(", ") || "-";
+        }
+
+            // Actualizar el acumulado de acciones (usando el nuevo formato de señales)
+            if (oSignal) {
+                currentShares = oSignal.SHARES || 0;
+            }
+            
+            return {
+                DATE: oDateFormat.format(oDate),
+                DATE_GRAPH: oDate,
+                OPEN: oItem.OPEN,
+                HIGH: oItem.HIGH,
+                LOW: oItem.LOW,
+                CLOSE: oItem.CLOSE,
+                VOLUME: oItem.VOLUME,
+                ...indicatorValues,
+                INDICATORS: indicatorText,
+                SIGNALS: oSignal?.TYPE?.toUpperCase() || "-", // "BUY", "SELL" o vacío
+                RULES: oSignal?.REASONING || "-",
+                SHARES: currentShares.toFixed(4),  // Muestra el acumulado diario
+                BUY_SIGNAL: oSignal?.TYPE?.toLowerCase() === 'buy' ? oItem.CLOSE : null,
+                SELL_SIGNAL: oSignal?.TYPE?.toLowerCase() === 'sell' ? oItem.CLOSE : null,
+            };
+        });
+    },
 
     onRefreshChart: function() {
       var oSymbolModel = this.getView().getModel("symbolModel");
@@ -674,7 +787,7 @@ sap.ui.define([
             ...oStrategyModel.getData(),
             symbol: simulationDetail.SYMBOL,
             strategyKey: "MACrossover", // O el valor que corresponda
-            balance: this._CONSTANTS.DEFAULT_BALANCE,
+            balance: sessionStorage.getItem("CAPITAL"),
             startDate: new Date(simulationDetail.STARTDATE),
             endDate: new Date(simulationDetail.ENDDATE),
             controlsVisible: true // Mostrar los controles de la estrategia

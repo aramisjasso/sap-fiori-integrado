@@ -16,7 +16,7 @@
                 <Title text="Configuración" titleStyle="H4" />
                 <HBox justifyContent="SpaceBetween">
                     <Label text="Estrategia:" class="sapUiTinyMarginEnd" />
-                    <Text text="{strategyResultModel>/simulationName}" />
+                    <Text text="{strategyResultModel>/strategy}" />
                 </HBox>
                 <HBox justifyContent="SpaceBetween">
                     <Label text="Simbolo:" class="sapUiTinyMarginEnd" />
