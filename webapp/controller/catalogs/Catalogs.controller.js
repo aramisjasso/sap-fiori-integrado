@@ -295,6 +295,7 @@ sap.ui.define(
                   SEQUENCE: oEditedData.SEQUENCE,
                   IMAGE: oEditedData.IMAGE,
                   DESCRIPTION: oEditedData.DESCRIPTION,
+                  DETAIL_ROW:{ ACTIVED: oEditedData.DETAIL_ROW.ACTIVED}
                 };
                 oTableModel.setProperty("/values", aData);
               }
