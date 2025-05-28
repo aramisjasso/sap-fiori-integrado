@@ -78,7 +78,7 @@
                     state="{newValueModel>/DETAIL_ROW/ACTIVED}"
                     customTextOn="ACTIVO"
                     customTextOff="INACTIVO"
-                    change=".onSwitchChange"
+                   
                 />
 
                 <!-- Agrega más campos según necesites -->

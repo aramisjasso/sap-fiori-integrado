@@ -31,7 +31,11 @@ sap.ui.define([
         VALUEPAID: "",
         ALIAS: "",
         IMAGE: "",
-        DESCRIPTION: ""
+        DESCRIPTION: "",
+        DETAIL_ROW: {
+            ACTIVED: "",
+            DELETED: ""
+        }
     }), "newValueModel");
 
     // Carga los valores al iniciar usando el LABELID real
@@ -95,6 +99,9 @@ sap.ui.define([
         ALIAS: oSelectedData.ALIAS,
         IMAGE: oSelectedData.IMAGE,
         DESCRIPTION: oSelectedData.DESCRIPTION,
+        DETAIL_ROW: {
+            ACTIVED: oSelectedData.DETAIL_ROW.ACTIVED
+        }
     });
 
     // Filtrar valores del ComboBox 2
@@ -141,7 +148,7 @@ sap.ui.define([
                 SEQUENCE: 30,
                 IMAGE: oFormData.IMAGE || "",
                 DESCRIPTION: oFormData.DESCRIPTION || "",
-                ACTIVED: true,
+                ACTIVED: oFormData.DETAIL_ROW.ACTIVED,
                 REGUSER: "MIGUEL",
                 // Estructura anidada para DETAIL_ROW
             }
@@ -169,7 +176,9 @@ sap.ui.define([
                             VALUEPAID: oFormData.VALUEPAID,
                             ALIAS: oFormData.ALIAS,
                             IMAGE: oFormData.IMAGE,
-                            DESCRIPTION: oFormData.DESCRIPTION
+                            DESCRIPTION: oFormData.DESCRIPTION,
+                            DETAIL_ROW:{ ACTIVED: oFormData.DETAIL_ROW.ACTIVED}
+                            
                         };
                         oValuesModel.setProperty("/values", currentValues);
                     }
@@ -215,7 +224,7 @@ sap.ui.define([
             IMAGE: oFormData.IMAGE || "",
             DESCRIPTION: oFormData.DESCRIPTION || "",
             DETAIL_ROW: {
-                ACTIVED: true,
+                ACTIVED: oFormData.DETAIL_ROW.ACTIVED,
                 DELETED: false,
                 DETAIL_ROW_REG: [
                     {
@@ -298,7 +307,7 @@ sap.ui.define([
             this.StatusValue(false);
         },
 
-        StatusValue: function (aceptar) {
+        StatusValue: function () {
     var oView = this.getView();
     var oNewValueModel = oView.getModel("newValueModel");
     var oValuesModel = oView.getModel("values");
@@ -312,22 +321,35 @@ sap.ui.define([
     oView.setBusy(true);
 
     $.ajax({
-        url: `http://localhost:3033/api/catalogos/logicalLabelValue?status=${aceptar}&id=${oFormData.VALUEID}&type=2`,
+        url: `http://localhost:3033/api/catalogos/logicalLabelValue?status=${!oFormData.DETAIL_ROW.ACTIVED}&id=${oFormData.VALUEID}&type=2`,
         method: "GET",
         success: function (response) {
             oView.setBusy(false);
 
-            // 🔥 Usa el LABELID del valor seleccionado si existe, si no el del catálogo
-            var labelIdToReload = oFormData.LABELID || (oValuesModel.getProperty("/selectedValue") && oValuesModel.getProperty("/selectedValue").LABELID);
+            // // 🔥 Usa el LABELID del valor seleccionado si existe, si no el del catálogo
+            // var labelIdToReload = oFormData.LABELID || (oValuesModel.getProperty("/selectedValue") && oValuesModel.getProperty("/selectedValue").LABELID);
 
-            if (labelIdToReload && labelIdToReload !== "IdViews") {
-                this._loadValuesByLabel(labelIdToReload);
-            } else {
-                MessageToast.show("No se pudo recargar la lista: LABELID inválido.");
-            }
+            // if (labelIdToReload && labelIdToReload !== "IdViews") {
+            //     // this._loadValuesByLabel(labelIdToReload);
+            // } else {
+            //     MessageToast.show("No se pudo recargar la lista: LABELID inválido.");
+            // }
+
+            var currentValues = oValuesModel.getProperty("/values") || [];
+              var updatedIndex = currentValues.findIndex(
+                (item) => item.VALUEID === oFormData.VALUEID
+              );
+
+              if (updatedIndex !== -1) {
+                currentValues[updatedIndex].DETAIL_ROW = {
+                  ACTIVED: !oFormData.DETAIL_ROW.ACTIVED
+                };
+                
+                oValuesModel.setProperty("/values", currentValues);
+              }
 
             MessageToast.show(
-                !aceptar ? "Valor activado correctamente" : "Valor desactivado correctamente"
+                !!oFormData.DETAIL_ROW.ACTIVED ? "Valor activado correctamente" : "Valor desactivado correctamente"
             );
         }.bind(this),
         error: function (error) {
