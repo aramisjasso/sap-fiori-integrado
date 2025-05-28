@@ -54,29 +54,7 @@
             <rowmodes:Fixed rowCount="5" />
           </tl:rowMode>
 
-          <tl:columns>
-            <tl:Column>
-              <m:Label text="Proceso" />
-              <tl:template>
-                <m:Text text="{selectedRole>PROCESSNAME}" />
-              </tl:template>
-            </tl:Column>
-
-            <tl:Column>
-              <m:Label text="Aplicación" />
-              <tl:template>
-                <m:Text text="{selectedRole>APPLICATIONNAME}" />
-              </tl:template>
-            </tl:Column>
-
-            <tl:Column>
-              <m:Label text="Vista" />
-              <tl:template>
-                <m:Text text="{selectedRole>VIEWNAME}" />
-              </tl:template>
-            </tl:Column>
-
-            <tl:Column>
+           <tl:Column>
               <m:Label text="Privilegios" />
               <tl:template>
                 <m:HBox wrap="Wrap">
@@ -88,11 +66,38 @@
                 </m:HBox>
               </tl:template>
             </tl:Column>
+
+          <tl:columns>
+            <tl:Column>
+              <m:Label text="Proceso" />
+              <tl:template>
+                <m:Text text="{selectedRole>PROCESSNAME}" />
+              </tl:template>
+            </tl:Column>
+
+
+            <tl:Column>
+              <m:Label text="Pagina" />
+              <tl:template>
+                <m:Text text="{selectedRole>VIEWNAME}" />
+              </tl:template>
+            </tl:Column>
+
+            <tl:Column>
+              <m:Label text="Aplicación" />
+              <tl:template>
+                <m:Text text="{selectedRole>APPLICATIONNAME}" />
+              </tl:template>
+            </tl:Column>
+
+        
+
+          
           </tl:columns>
         </tl:Table>
       </m:Panel>
 
-      <!-- 🔹 Usuarios del rol -->
+      <!-- Usuarios del rol -->
       <m:Panel
         expandable="false"
   class="sapUiMediumMarginTop"

@@ -8,12 +8,15 @@ sap.ui.define([
   "sap/ui/model/FilterOperator",
   "sap/ui/core/Fragment"
 ], function (BaseController,JSONModel,Log,MessageToast,MessageBox,Filter,FilterOperator,Fragment,$){
+  
   "use strict";
-
 
   return BaseController.extend("com.invertions.sapfiorimodinv.controller.security.RolesMaster", {
 
 
+// ==============================
+// INICIO DE TODO
+// ==============================
 onInit: function () {
   this._catalogsLoaded = false;
   this.initModels();
@@ -29,7 +32,9 @@ onInit: function () {
   this.getView().setModel(oUiStateModel, "uiState");
 
 
-  // Cargar el fragmento solo una vez
+// ==============================
+// Cargar el fragmento para anñadir roles
+// ==============================
   if (!this._pDialog) {
     this._pDialog = Fragment.load({
       name: "com.invertions.sapfiorimodinv.view.security.fragments.AddRoleDialog",
@@ -42,6 +47,9 @@ onInit: function () {
 },
 
 
+// ==============================
+// Inicializar los modelos 
+// ==============================
     initModels: function () {
       const view = this.getView();
       view.setModel(new JSONModel(), "selectedRole");
@@ -53,20 +61,25 @@ onInit: function () {
         DESCRIPTION: "",
         NEW_PROCESSID: "",
         NEW_PRIVILEGES: [],
+        NEW_APID:"",
+        NEW_PAGEID:"",
         PRIVILEGES: []
       }), "newRoleModel");
     },
 
-
+//Cargar los catalogs de una sola vez, el de procesos y privilegios
     loadCatalogsOnce: async function () {
       if (!this._catalogsLoaded) {
+        await this.loadCatalog("IdApplications","applicationCatalogModel");
         await this.loadCatalog("IdProcesses", "processCatalogModel");
+        await this.loadCatalog("IdViews", "viewCatalogModel");
         await this.loadCatalog("IdPrivileges", "privilegeCatalogModel");
         this._catalogsLoaded = true;
       }
     },
-
-
+// ==============================
+// FUNCIÓN para abrir el dialogo de crear roles
+// ==============================
     onOpenDialog: async function () {
       await this.loadCatalogsOnce();
 
@@ -77,6 +90,8 @@ onInit: function () {
         DESCRIPTION: "",
         NEW_PROCESSID: "",
         NEW_PRIVILEGES: [],
+        NEW_APPID: "",
+        NEW_PAGEID: "",
         PRIVILEGES: []
       });
 
@@ -87,14 +102,14 @@ onInit: function () {
       });
     },
 
-
+//Cuando se cierra el dialogo
     onDialogClose: function () {
       this._pDialog.then(function (oDialog) {
         oDialog.close();
       });
     },
 
-
+//Agregar privilegios al rol
     onAddPrivilege: function () {
       const oModel = this.getView().getModel("newRoleModel");
       const oData = oModel.getData();
@@ -117,7 +132,7 @@ onInit: function () {
       oModel.setData(oData);
     },
 
-
+//Guardar el rol
   onSaveRole: async function () {
   const oView = this.getView();
   const oData = oView.getModel("newRoleModel").getData();
@@ -149,15 +164,11 @@ onInit: function () {
 
 
     if (!response.ok) throw new Error(await response.text());
-
-
     MessageToast.show(bIsEditMode ? "Rol actualizado correctamente." : "Rol guardado correctamente.");
-
 
     this._pDialog.then(function (oDialog) {
       oDialog.close();
     });
-
 
     const oRolesModel = this.getOwnerComponent().getModel("roles");
     let aAllRoles = oRolesModel.getProperty("/valueAll") || [];
@@ -218,7 +229,7 @@ onInit: function () {
   }
 },
 
-
+//Desactivar un rol
 onDesactivateRole: function () {
   const oTable = this.byId("rolesTable");
   const iIndex = oTable.getSelectedIndex();
@@ -249,6 +260,7 @@ onDesactivateRole: function () {
   });
 },
 
+//Activar un rol
 onActivateRole: function () {
   console.log("Activar rol");
   const oTable = this.byId("rolesTable");
@@ -280,7 +292,8 @@ onActivateRole: function () {
   });
 },
 
-      onDeleteRole: function () {
+//Eliminar un rol permanentemente(fisico)
+  onDeleteRole: function () {
   const oTable = this.byId("rolesTable");
   const iIndex = oTable.getSelectedIndex();
 
@@ -308,7 +321,7 @@ onActivateRole: function () {
       });
     },
 
-
+//Cargar los datos de los roles, desde la API de getall
   loadRolesData: async function () {
   try {
     const response = await fetch("http://localhost:3033/api/sec/usersroles/rolesCRUD?procedure=get&type=all", {
@@ -334,9 +347,7 @@ onActivateRole: function () {
   }
 },
 
-
-
-
+//quitar los privilegios en lo de editar un rol
     onRemovePrivilege: function (oEvent) {
       const oModel = this.getView().getModel("newRoleModel");
       const oData = oModel.getData();
@@ -355,16 +366,17 @@ onActivateRole: function () {
     //Cargar los catalogos
     loadCatalog: async function (labelId, modelName) {
       try {
-        const response = await fetch(`http://localhost:3033/api/catalogos/getAllLabels?type=label&labelid=${labelId}`);
+        const response = await fetch(`http://localhost:3033/api/catalogos/getAllLabels?type=value&labelid=${labelId}`);
         const data = await response.json();
-        const values = data.value?.[0]?.VALUES || [];
-        this.getView().setModel(new JSONModel({ values }), modelName);
+        //const values = data.value?.[0]?.VALUES || []; //PENDIENTE 
+        const values = data.value || [];
+        this.getView().setModel(new JSONModel({ values, valuesAll: values }), modelName);
       } catch (err) {
         Log.error(`Error al cargar catálogo ${labelId}`, err);
       }
     },
 
-
+//Rol seleccionado
   onRoleSelected: async function () {
   const oTable = this.byId("rolesTable");
   const iIndex = oTable.getSelectedIndex();
@@ -419,7 +431,7 @@ onActivateRole: function () {
       oBinding.filter(aFilters);
     },
 
-
+//EDITAR UN ROL
 onEditRole: async function () {
 const oRole = this.getOwnerComponent().getModel("selectedRole")?.getData();
 
@@ -543,5 +555,32 @@ _handleRoleAction: async function (options) {
         }.bind(this)
       });
     },
+
+// Cuando le doy a seleccionas una aplicación
+onApplicationChange: async function (oEvent) {
+  const sAppId = oEvent.getSource().getSelectedKey();
+  const allViews = this.getView().getModel("viewCatalogModel").getData().valuesAll || [];
+  const filteredViews = allViews.filter(view => view.VALUEPAID === sAppId);
+  this.getView().setModel(new JSONModel({ values: filteredViews }), "viewCatalogModel");
+
+  // Limpia selección de view y proceso
+  const oModel = this.getView().getModel("newRoleModel");
+  oModel.setProperty("/NEW_VIEWID", "");
+  oModel.setProperty("/NEW_PROCESSID", "");
+},
+
+// Cuando seleccionas una view
+onViewChange: async function (oEvent) {
+  const sViewId = oEvent.getSource().getSelectedKey();
+  const allProcesses = this.getView().getModel("processCatalogModel").getData().valuesAll || [];
+  const filteredProcesses = allProcesses.filter(proc => proc.VALUEPAID === sViewId);
+  this.getView().setModel(new JSONModel({ values: filteredProcesses }), "processCatalogModel");
+
+  // Limpia selección de proceso
+  const oModel = this.getView().getModel("newRoleModel");
+  oModel.setProperty("/NEW_PROCESSID", "");
+},
+
+
   });
 });
