@@ -59,6 +59,7 @@ sap.ui.define([
 
         // Guarda el USERNAME en sessionStorage
         sessionStorage.setItem("USERNAME", user.USERNAME);
+        sessionStorage.setItem("CAPITAL", user.CAPITAL);
 
         // Guarda el usuario autenticado en appView
         const oAppModel = this.getOwnerComponent().getModel("appView");

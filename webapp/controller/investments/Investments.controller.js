@@ -55,7 +55,7 @@ sap.ui.define([
 
       // Modelo de análisis de estrategia
       this.getView().setModel(new JSONModel({
-        balance: this._CONSTANTS.DEFAULT_BALANCE,
+        balance: sessionStorage.getItem("CAPITAL") || this._CONSTANTS.DEFAULT_BALANCE,
         amount: this._CONSTANTS.DEFAULT_AMOUNT,
         strategyKey: "",
         longSMA: this._CONSTANTS.DEFAULT_LONG_SMA,
@@ -161,10 +161,16 @@ sap.ui.define([
             }
 
             const data = await response.json();
+            const oDateFormat = DateFormat.getDateInstance({ pattern: "dd/MM/yyyy" });
             
             const chartData = data.value.map(item => ({
                 DATE_GRAPH: new Date(item.DATE),
-                CLOSE: item.CLOSE
+                DATE: item.DATE,
+                OPEN: item.OPEN,
+                HIGH: item.HIGH,
+                LOW: item.LOW,
+                CLOSE: item.CLOSE,
+                VOLUME: item.VOLUME
             }));
 
             const oResultModel = this.getView().getModel("strategyResultModel");
