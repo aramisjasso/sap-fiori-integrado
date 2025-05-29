@@ -217,6 +217,7 @@ sap.ui.define([
                 start: null,
                 end: null,
               },
+              
             },
             valueAxis: {
               title: { text: "Precio (USD)" }, // Generalize title as it will show various measures
@@ -234,17 +235,14 @@ sap.ui.define([
             legend: {
               visible: true,
             },
-            toolTip: {
+            tooltip: {
               visible: true,
               formatString: "#,##0.00",
             },
             interaction: {
-              zoom: {
-                enablement: "enabled",
-              },
-              selectability: {
-                mode: "single",
-              },
+                behaviorType : null,
+                zoom: { enablement: "enabled" },
+                selectability: { mode: "single" }
             },
           });
     },
@@ -1150,18 +1148,46 @@ onStrategyNameBlur: function(oEvent) {
         if (sSearchValue) {
             aFilters.push(new Filter({
                 filters: [
+                // Solo aplicar Contains a campos de texto
+                new Filter({
+                    path: "strategyName",
+                    operator: FilterOperator.Contains,
+                    value1: sSearchValue
+                }),
+                new Filter({
+                    path: "symbol",
+                    operator: FilterOperator.Contains,
+                    value1: sSearchValue.toUpperCase()
+                }),
+                new Filter({
+                    path: "strategyType",
+                    operator: FilterOperator.Contains,
+                    value1: sSearchValue
+                }),
+                // Para campos numéricos, usar EQ si el valor es un número
+                ...(this._isNumeric(sSearchValue) ? [
                     new Filter({
-                        path: "strategyName",
-                        operator: FilterOperator.Contains,
-                        value1: sSearchValue
+                        path: "result",
+                        operator: FilterOperator.EQ,
+                        value1: parseFloat(sSearchValue)
                     }),
                     new Filter({
-                        path: "symbol",
-                        operator: FilterOperator.Contains,
-                        value1: sSearchValue.toUpperCase()
+                        path: "rentability",
+                        operator: FilterOperator.EQ,
+                        value1: parseFloat(sSearchValue)
                     })
-                ],
-                and: false
+                ] : []),
+                // Para fechas, usar función test personalizada
+                new Filter({
+                    test: function(oItem) {
+                        const startDate = oItem.details?.STARTDATE?.toString() || '';
+                        const endDate = oItem.details?.ENDDATE?.toString() || '';
+                        return startDate.includes(sSearchValue) || 
+                               endDate.includes(sSearchValue);
+                    }
+                })
+            ],
+            and: false
             }));
         }
         
@@ -1233,6 +1259,10 @@ onStrategyNameBlur: function(oEvent) {
         // Actualizar contador
         const oModel = this.getView().getModel("historyModel");
         oModel.setProperty("/filteredCount", oBinding.getLength());
+    },
+
+    _isNumeric: function(value) {
+        return !isNaN(parseFloat(value)) && isFinite(value);
     },
 
     // Actualizar onSearch para que use _applyFilters

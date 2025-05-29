@@ -15,7 +15,7 @@
             <OverflowToolbar class="">
                 <SearchField
                 id="searchField"
-                    placeholder="Buscar por nombre o símbolo..."
+                    placeholder="Buscar.."
                     search=".onSearch"
                     width="300px"
                     showSearchButton="true"/>
