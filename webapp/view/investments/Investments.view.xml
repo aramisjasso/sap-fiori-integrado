@@ -126,18 +126,16 @@
                                         <viz:dataset>
                                             <viz.data:FlattenedDataset data="{strategyResultModel>/chart_data}">
                                                 <viz.data:dimensions>
-                                                    <viz.data:DimensionDefinition name="Fecha"
-                                                                                value="{strategyResultModel>DATE_GRAPH}"
-                                                                                dataType="date"/>
+                                                    <viz.data:DimensionDefinition 
+                                                        name="Fecha"
+                                                        value="{strategyResultModel>DATE_GRAPH}"
+                                                        dataType="date"/>
                                                 </viz.data:dimensions>
                                                 <viz.data:measures>
-                                                    <viz.data:MeasureDefinition name="PrecioCierre" 
-                                                                              value="{strategyResultModel>CLOSE}"/>
-                                                    <viz.data:MeasureDefinition name="ShortMA" 
-                                                                              value="{strategyResultModel>SHORT_MA}"/>
-                                                    <viz.data:MeasureDefinition name="LongMA" 
-                                                                              value="{strategyResultModel>LONG_MA}"/>
-
+                                                    <viz.data:MeasureDefinition
+                                                        name="PrecioCierre"
+                                                        value="{CLOSE}"
+                                                    />
                                                     <viz.data:MeasureDefinition
                                                         name="SHORT_MA"
                                                         value="{SHORT_MA}"
@@ -162,17 +160,25 @@
                                                         name="ATR"
                                                         value="{ATR}"
                                                     />
-                                                    <viz.data:MeasureDefinition name="Señal BUY" 
-                                                                              value="{strategyResultModel>BUY_SIGNAL}"/>
-                                                    <viz.data:MeasureDefinition name="Señal SELL" 
-                                                                              value="{strategyResultModel>SELL_SIGNAL}"/>
-                                                </viz.data:measures>
+                                                    <viz.data:MeasureDefinition
+                                                        name="ADX"
+                                                        value="{ADX}"
+                                                    />
+                                                    <viz.data:MeasureDefinition
+                                                        name="Señal BUY"
+                                                        value="{BUY_SIGNAL}"
+                                                    />
+                                                    <viz.data:MeasureDefinition
+                                                        name="Señal SELL"
+                                                        value="{SELL_SIGNAL}"
+                                                    />
+                                                    </viz.data:measures>
                                             </viz.data:FlattenedDataset>
                                         </viz:dataset>
                                         <viz:feeds>
                                             <viz.feeds:FeedItem uid="timeAxis" type="Dimension" values="Fecha"/>
                                             <viz.feeds:FeedItem uid="valueAxis" type="Measure" 
-                                                               values="PrecioCierre,ShortMA,LongMA,Señal BUY,Señal SELL"/>
+                                                               values="{strategyAnalysisModel>/chartMeasuresFeed}"/>
                                         </viz:feeds>
                                     </viz:VizFrame>
                                 </content>

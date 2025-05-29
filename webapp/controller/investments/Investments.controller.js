@@ -72,7 +72,8 @@ sap.ui.define([
         startDate: null,
         endDate: null,
         controlsVisible: false,
-        strategies: []
+        strategies: [],
+        chartMeasuresFeed: ["PrecioCierre", "Señal BUY", "Señal SELL"],
       }), "strategyAnalysisModel");
 
       
@@ -123,6 +124,7 @@ sap.ui.define([
           { key: "Reversión Simple", text: this._oResourceBundle.getText("reversionSimpleStrategy")},
           { key: "Supertrend", text: this._oResourceBundle.getText("supertrendStrategy")},
         ]);
+        //this._updateChartMeasuresFeed();
       } catch (error) {
         console.error("Error al cargar ResourceBundle:", error);
       }
@@ -209,45 +211,42 @@ sap.ui.define([
         if (!oVizFrame) return;
 
         oVizFrame.setVizProperties({
-            plotArea: { 
-                dataShape: { 
-                    primaryAxis: ["line", "line", "line", "line", "line", "point", "point"]
-                },
-                colorPalette: ["#0074D9", "#FFDC00", "#FFA500", "#B10DC9", "#39CCCC", "#2ecc40", "#ff4136"],
-                dataLabel: { visible: false },
-                marker: {
-                    visible: true,
-                    forceVisible: true,
-                    shape: ["circle", "circle", "circle", "triangleUp", "triangleDown"],
-                    size: 5,
-                },
-            
-                window: {
-                    start: "firstDataPoint",
-                    end: "lastDataPoint"
-                },
-                handleNull: "zero"
+            plotArea: {
+              dataLabel: { visible: false },
+              window: {
+                start: null,
+                end: null,
+              },
             },
-            valueAxis: { 
-                title: { text: "Precio de Cierre (USD)" }, 
-                visible: true 
+            valueAxis: {
+              title: { text: "Precio (USD)" }, // Generalize title as it will show various measures
             },
             timeAxis: {
-                title: { text: "Fecha" },
-                levels: ["day", "month", "year"],
-                label: { formatString: "dd/MM/yy" }
+              title: { text: "Fecha" },
+              levels: ["day", "month", "year"],
+              label: {
+                formatString: "dd/MM/yy",
+              },
             },
-            title: { text: "Histórico de Precios de Acciones" },
-            legend: { visible: true },
-            tooltip: {
-                visible: true,
+            title: {
+              text: "Análisis de Precios e Indicadores",
+            },
+            legend: {
+              visible: true,
+            },
+            toolTip: {
+              visible: true,
+              formatString: "#,##0.00",
             },
             interaction: {
-                behaviorType : null,
-                zoom: { enablement: "enabled" },
-                selectability: { mode: "single" }
-            }
-        });
+              zoom: {
+                enablement: "enabled",
+              },
+              selectability: {
+                mode: "single",
+              },
+            },
+          });
     },
 
     // Métodos de fecha
@@ -272,15 +271,73 @@ sap.ui.define([
     },
 
     onStrategyChange: function(oEvent) {
-      var sSelectedKey = oEvent.getParameter("selectedItem").getKey();
-      this.getView().getModel("strategyAnalysisModel").setProperty("/controlsVisible", !!sSelectedKey);
+        var oStrategyAnalysisModel = this.getView().getModel("strategyAnalysisModel");
+        var sSelectedKey = oEvent.getParameter("selectedItem").getKey();
+        oStrategyAnalysisModel.setProperty(
+          "/controlsVisible",
+          !!sSelectedKey
+        );
+        // Update strategyKey in the model
+        oStrategyAnalysisModel.setProperty("/strategyKey", sSelectedKey);
     },
+
+    _updateChartMeasuresFeed: function (sStrategyKey, oStrategyAnalysisModel) {
+      // Define las medidas base que siempre deben estar presentes
+      // ¡IMPORTANTE! Usar los NOMBRES de las MeasureDefinition del XML, no los nombres de las propiedades de los datos.
+      let aMeasures = ["PrecioCierre"];
+      // Añade medidas adicionales según la estrategia seleccionada
+      if (sStrategyKey === "MACrossover") {
+        aMeasures.push("SHORT_MA", "LONG_MA"); // Estos nombres coinciden en tu XML
+      } else if (sStrategyKey === "Reversión Simple") {
+        aMeasures.push("RSI", "SMA"); // Estos nombres coinciden en tu XML
+      } else if( sStrategyKey === "Supertrend") {
+        aMeasures.push("MA","ATR");
+      } else if( sStrategyKey === "Momentum") {
+        aMeasures.push("SHORT_MA","LONG_MA", "RSI", "ADX");
+      }
+       aMeasures.push("Señal BUY", "Señal SELL");
+      // Actualiza la propiedad del modelo con las medidas actuales
+      oStrategyAnalysisModel.setProperty("/chartMeasuresFeed", aMeasures);
+      console.log("Medidas actualizadas en el modelo:", aMeasures);
+      const oVizFrame = this.byId("idVizFrame");
+      if (oVizFrame) {
+        // Obtener el dataset actual
+        const oDataset = oVizFrame.getDataset();
+        if (oDataset) {
+          // Eliminar feeds existentes para valueAxis
+          const aCurrentFeeds = oVizFrame.getFeeds();
+          for (let i = aCurrentFeeds.length - 1; i >= 0; i--) {
+            const oFeed = aCurrentFeeds[i];
+            if (oFeed.getUid() === "valueAxis") {
+              oVizFrame.removeFeed(oFeed);
+            }
+          }
+          // Crear y añadir un nuevo FeedItem para valueAxis con las medidas actualizadas
+          const oNewValueAxisFeed = new FeedItem({
+            uid: "valueAxis",
+            type: "Measure",
+            values: aMeasures,
+          });
+          oVizFrame.addFeed(oNewValueAxisFeed);
+          // Forzar la actualización del dataset si es necesario (a veces ayuda)
+          // oDataset.setModel(oVizFrame.getModel("strategyResultModel")); // Esto puede ser redundante si el binding ya está bien
+          // Invalida el VizFrame para forzar un re-renderizado
+          oVizFrame.invalidate();
+        } else {
+          console.warn("Dataset no encontrado en el VizFrame.");
+        }
+      } else {
+        console.warn("VizFrame con ID 'idVizFrame' no encontrado.");
+      }
+    },
+
 
     onRunAnalysisPress: async function() {
         var oView = this.getView();
         var oStrategyModel = oView.getModel("strategyAnalysisModel");
         var oResultModel = oView.getModel("strategyResultModel");
         var sSymbol = oView.byId("symbolSelector").getSelectedKey();
+        var sSelectedKey = oEvent.getParameter("selectedItem").getKey();
 
         // Validaciones
         if (!this._validateAnalysisInputs(oStrategyModel, sSymbol)) return;
@@ -294,6 +351,7 @@ sap.ui.define([
 
         try {
             await this._callAnalysisAPISimulation(sSymbol, oStrategyModel, oResultModel);
+            this._updateChartMeasuresFeed(sSelectedKey, oStrategyModel);
         } catch (error) {
             MessageBox.error("Error al procesar la simulación");
             oViewModel.setProperty("/analysisPanelExpanded", true);
@@ -320,37 +378,39 @@ sap.ui.define([
     _callAnalysisAPISimulation: async function(sSymbol, oStrategyModel, oResultModel) {
         const strategy = oStrategyModel.getProperty("/strategyKey");
         let apiStrategyName = strategy;
+        let SPECS = [];
         
-        // Ajustar nombre de estrategia para API
         switch(strategy) {
             case "Momentum":
                 apiStrategyName = "momentum";
+                SPECS = [
+                    {
+                        INDICATOR: "LONG",
+                        VALUE: oStrategyModel.getProperty("/long")
+                    },
+                    {
+                        INDICATOR: "SHORT",
+                        VALUE: oStrategyModel.getProperty("/short")
+                    },
+                    {
+                        INDICATOR: "ADX",
+                        VALUE: oStrategyModel.getProperty("/adx")
+                    },
+                    {
+                        INDICATOR: "RSI",
+                        VALUE: oStrategyModel.getProperty("/rsi")
+                    }
+                ]
                 break;
             case "Reversión Simple":
                 apiStrategyName = "reversionsimple";
-                break;
-            case "Supertrend":
-                apiStrategyName = "supertrend";
-                break;
-            case "MACrossover":
-                apiStrategyName = "macrossover";
-                break;
-            default:
-                throw new Error("Estrategia no soportada");
-        }
-
-        const API_URL = `http://localhost:3033/api/inv/simulation?strategy=${apiStrategyName}`;
-
-        // Configurar SPECS según la estrategia
-        let SPECS = [];
-        switch(apiStrategyName) {
-            case "reversionsimple":
                 SPECS = [{
                     INDICATOR: "rsi",
                     VALUE: oStrategyModel.getProperty("/rsi")
                 }];
                 break;
-            case "supertrend":
+            case "Supertrend":
+                apiStrategyName = "supertrend";
                 SPECS = [
                     {
                         INDICATOR: "ma_length",
@@ -370,15 +430,8 @@ sap.ui.define([
                     }
                 ];
                 break;
-            case "momentum":
-                SPECS = [
-                    {
-                        INDICATOR: "period",
-                        VALUE: oStrategyModel.getProperty("/period") || 14
-                    }
-                ];
-                break;
-            default: // MACrossover
+            case "MACrossover":
+                apiStrategyName = "macrossover";
                 SPECS = [
                     {
                         INDICATOR: "SHORT_MA",
@@ -389,7 +442,13 @@ sap.ui.define([
                         VALUE: oStrategyModel.getProperty("/longSMA")
                     }
                 ];
+                break;
+            default:
+                throw new Error("Estrategia no soportada");
         }
+
+
+        const API_URL = `http://localhost:3033/api/inv/simulation?strategy=${apiStrategyName}`;
 
       var oRequestBody = {
         "SIMULATION": {
@@ -717,13 +776,13 @@ sap.ui.define([
             // 2. Actualizar modelos
             const oStrategyModel = this.getView().getModel("strategyAnalysisModel");
             const oResultModel = this.getView().getModel("strategyResultModel");
+            const oView = this.getView(); 
 
             const oViewModel = this.getView().getModel("viewModel");
             oViewModel.setProperty("/analysisPanelExpanded", false);
             oViewModel.setProperty("/resultPanelExpanded", true);
 
             oResultModel.setProperty("/isLoading", true);
-            
             
             this._updateModelsWithSimulationData({
                 simulationDetail,
@@ -732,7 +791,13 @@ sap.ui.define([
                 oItem: this._oSelectedStrategy
             });
             
+            var oStrategyAnalysisModel = this.getView().getModel("strategyAnalysisModel");
+            //ponerle un switch o if según la estrategia traída
+            var sStrategyKey = simulationDetail.STRATEGY;
+            oView.byId("symbolSelector").setSelectedKey(sStrategyKey || "");
+
             oResultModel.setProperty("/isLoading", false);
+            this._updateChartMeasuresFeed(sStrategyKey, oStrategyAnalysisModel);
 
             // 4. Cerrar y feedback
             this._oHistoryPopover.close();
@@ -768,6 +833,8 @@ sap.ui.define([
         if (oSymbolSelector) {
             oSymbolSelector.setSelectedKey(simulationDetail.SYMBOL);
         }
+        //asignar la estrategia en el combo de estrategias...
+
         // Datos para strategyAnalysisModel
         oStrategyModel.setData({
             ...oStrategyModel.getData(),
