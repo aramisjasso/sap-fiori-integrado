@@ -22,9 +22,7 @@ sap.ui.define([
     DEFAULT_BALANCE: 1000,
       DEFAULT_AMOUNT: 25,
       DEFAULT_SHORT_SMA: 50,
-      DEFAULT_LONG_SMA: 200,
-      URL_SIMULATION: "http://localhost:3033/api/inv/simulation?strategy=macrossover",
-      URL_GETSIMULATION: "http://localhost:3033/api/inv/getSimulation?id=MSFT_2025-05-25_05-11-07-449Z"
+      DEFAULT_LONG_SMA: 200
     },
 
     onInit: function() {
@@ -73,7 +71,7 @@ sap.ui.define([
         endDate: null,
         controlsVisible: false,
         strategies: [],
-        chartMeasuresFeed: ["PrecioCierre", "Señal BUY", "Señal SELL"],
+        chartMeasuresFeed: ["PrecioCierre"],
       }), "strategyAnalysisModel");
 
       
@@ -124,7 +122,6 @@ sap.ui.define([
           { key: "Reversión Simple", text: this._oResourceBundle.getText("reversionSimpleStrategy")},
           { key: "Supertrend", text: this._oResourceBundle.getText("supertrendStrategy")},
         ]);
-        //this._updateChartMeasuresFeed();
       } catch (error) {
         console.error("Error al cargar ResourceBundle:", error);
       }
@@ -190,6 +187,7 @@ sap.ui.define([
             const oResultModel = this.getView().getModel("strategyResultModel");
             oResultModel.setProperty("/chart_data", chartData);
             oResultModel.setProperty("/symbol", TESTING_SYMBOL); // Usar símbolo de prueba
+            this._updateChartMeasuresFeed("", oResultModel);
             
         } catch (error) {
             console.error("Error:", error);
@@ -294,8 +292,11 @@ sap.ui.define([
         aMeasures.push("MA","ATR");
       } else if( sStrategyKey === "Momentum") {
         aMeasures.push("SHORT_MA","LONG_MA", "RSI", "ADX");
+      } 
+      if (sStrategyKey !== "") {
+        aMeasures.push("Señal BUY", "Señal SELL");
       }
-       aMeasures.push("Señal BUY", "Señal SELL");
+       
       // Actualiza la propiedad del modelo con las medidas actuales
       oStrategyAnalysisModel.setProperty("/chartMeasuresFeed", aMeasures);
       console.log("Medidas actualizadas en el modelo:", aMeasures);
@@ -337,7 +338,8 @@ sap.ui.define([
         var oStrategyModel = oView.getModel("strategyAnalysisModel");
         var oResultModel = oView.getModel("strategyResultModel");
         var sSymbol = oView.byId("symbolSelector").getSelectedKey();
-        var sSelectedKey = oEvent.getParameter("selectedItem").getKey();
+        const sSelectedKey = oStrategyModel.getProperty("/strategyKey");
+
 
         // Validaciones
         if (!this._validateAnalysisInputs(oStrategyModel, sSymbol)) return;
@@ -345,7 +347,7 @@ sap.ui.define([
         const oViewModel = this.getView().getModel("viewModel");
         oViewModel.setProperty("/analysisPanelExpanded", false);
         oViewModel.setProperty("/resultPanelExpanded", true);
-        
+
         oResultModel.setProperty("/isLoading", true);
         oResultModel.setProperty("/hasResults", false);
 
