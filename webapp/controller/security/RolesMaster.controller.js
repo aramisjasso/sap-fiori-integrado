@@ -44,6 +44,18 @@ onInit: function () {
       return oDialog;
     }.bind(this));
   }
+
+  // Fragmento para editar
+  if (!this._pEditDialog) {
+    this._pEditDialog = Fragment.load({
+      name: "com.invertions.sapfiorimodinv.view.security.fragments.EditRoleDialog",
+      controller: this
+    }).then(function (oDialog) {
+      this.getView().addDependent(oDialog);
+      return oDialog;
+    }.bind(this));
+  }
+
 },
 
 
@@ -61,7 +73,8 @@ onInit: function () {
         DESCRIPTION: "",
         NEW_PROCESSID: "",
         NEW_PRIVILEGES: [],
-        NEW_APID:"",
+        NEW_APPID:"",
+        NEW_VIEWID: "",
         NEW_PAGEID:"",
         PRIVILEGES: []
       }), "newRoleModel");
@@ -107,11 +120,21 @@ onInit: function () {
       this._pDialog.then(function (oDialog) {
         oDialog.close();
       });
+
+    // Cierra el de editar si está abierto
+    this._pEditDialog && this._pEditDialog.then(function (oDialog) {
+      if (oDialog.isOpen()) oDialog.close();
+    });
+
     },
 
-//Agregar privilegios al rol
+//Agregar privilegios al rol Y TAMBIEN CUANDO EDITA PRIVILEGIOS
 onAddPrivilege: function () {
-  const oModel = this.getView().getModel("newRoleModel");
+  // Detectar el modo de la UI
+  const oUiState = this.getView().getModel("uiState");
+  const bIsEditMode = oUiState?.getProperty("/dialogMode") === "edit";
+  // Usar el modelo correcto según el modo
+  const oModel = this.getView().getModel(bIsEditMode ? "roleDialogModel" : "newRoleModel");
   const oData = oModel.getData();
 
   if (!oData.NEW_PROCESSID || !Array.isArray(oData.NEW_PRIVILEGES) || oData.NEW_PRIVILEGES.length === 0) {
@@ -126,7 +149,7 @@ onAddPrivilege: function () {
   const selectedView = viewModel.getProperty("/values").find(v => v.VALUEID === oData.NEW_VIEWID);
   const selectedApp = appModel.getProperty("/values").find(a => a.VALUEID === oData.NEW_APPID);
 
-  oData.PRIVILEGES.push({
+   oData.PRIVILEGES.push({
     PROCESSID: oData.NEW_PROCESSID,
     PRIVILEGEID: oData.NEW_PRIVILEGES,
     VIEWID: oData.NEW_VIEWID,
@@ -140,24 +163,22 @@ onAddPrivilege: function () {
   oModel.setData(oData);
 },
 
-//Guardar el rol
+//Guardar el rol nuevo rol , crear rol, O EDITAR?
   onSaveRole: async function () {
   const oView = this.getView();
-  const oData = oView.getModel("newRoleModel").getData();
   const oUiState = oView.getModel("uiState");
   const bIsEditMode = oUiState?.getProperty("/dialogMode") === "edit";
-
+  // Usa el modelo correcto según el modo
+  const oData = oView.getModel(bIsEditMode ? "roleDialogModel" : "newRoleModel").getData();
 
   if (!oData.ROLEID || !oData.ROLENAME) {
     MessageToast.show("ID y Nombre del Rol son obligatorios.");
     return;
   }
 
-
   try {
     const sProcedure = bIsEditMode ? "patch" : "post";
-    const sMethod = "POST"; // Siempre POST, y que el backend lo distinga por `procedure`
-
+    const sMethod = "POST";
 
     const response = await fetch(`http://localhost:3033/api/sec/usersroles/rolesCRUD?procedure=${sProcedure}`, {
       method: sMethod,
@@ -166,71 +187,21 @@ onAddPrivilege: function () {
         ROLEID: oData.ROLEID,
         ROLENAME: oData.ROLENAME,
         DESCRIPTION: oData.DESCRIPTION,
-        PRIVILEGES: oData.PRIVILEGES
+        PRIVILEGES: oData.PRIVILEGES,
       })
     });
-
 
     if (!response.ok) throw new Error(await response.text());
     MessageToast.show(bIsEditMode ? "Rol actualizado correctamente." : "Rol guardado correctamente.");
 
-    this._pDialog.then(function (oDialog) {
-      oDialog.close();
-    });
-
-    const oRolesModel = this.getOwnerComponent().getModel("roles");
-    let aAllRoles = oRolesModel.getProperty("/valueAll") || [];
-
-
+    // Cierra el diálogo correcto
     if (bIsEditMode) {
-      // Actualizar el rol en la lista
-      aAllRoles = aAllRoles.map((r) => {
-        if (r.ROLEID === oData.ROLEID) {
-          return {
-            ...r,
-            ROLENAME: oData.ROLENAME,
-            DESCRIPTION: oData.DESCRIPTION,
-            PRIVILEGES: oData.PRIVILEGES
-          };
-        }
-        return r;
-      });
+      this._pEditDialog.then(function (oDialog) { oDialog.close(); });
     } else {
-      // Agregar nuevo rol
-      const oNewRole = {
-        ROLEID: oData.ROLEID,
-        ROLENAME: oData.ROLENAME,
-        DESCRIPTION: oData.DESCRIPTION,
-        PRIVILEGES: oData.PRIVILEGES,
-        DETAIL_ROW: {
-          ACTIVED: true,
-          DELETED: false
-        }
-      };
-      aAllRoles.push(oNewRole);
+      this._pDialog.then(function (oDialog) { oDialog.close(); });
     }
 
-
-    // Filtrar según el filtro actual
-    let aFiltered = [];
-    const sFilterKey = oRolesModel.getProperty("/filterKey");
-
-
-    switch (sFilterKey) {
-      case "active":
-        aFiltered = aAllRoles.filter(r => r.DETAIL_ROW?.ACTIVED && !r.DETAIL_ROW?.DELETED);
-        break;
-      case "inactive":
-        aFiltered = aAllRoles.filter(r => !r.DETAIL_ROW?.ACTIVED && !r.DETAIL_ROW?.DELETED);
-        break;
-      default:
-        aFiltered = aAllRoles.filter(r => !r.DETAIL_ROW?.DELETED);
-    }
-
-
-    oRolesModel.setProperty("/valueAll", aAllRoles);
-    oRolesModel.setProperty("/value", aFiltered);
-
+    this.loadRolesData();
 
   } catch (err) {
     MessageBox.error("Error al guardar el rol: " + err.message);
@@ -438,38 +409,75 @@ onActivateRole: function () {
       oBinding.filter(aFilters);
     },
 
-//EDITAR UN ROL
+// MODAL DE EDITAR UN ROL
 onEditRole: async function () {
-const oRole = this.getOwnerComponent().getModel("selectedRole")?.getData();
-
+  const oRole = this.getOwnerComponent().getModel("selectedRole")?.getData();
 
   if (!oRole || !oRole.ROLEID) {
     MessageToast.show("Selecciona un rol para editar.");
     return;
   }
 
-
   await this.loadCatalogsOnce();
 
+  // Si el rol viene con PROCESSES (estructura agrupada), desglósalo a un array plano de privilegios
+  let privileges = [];
+  if (Array.isArray(oRole.PROCESSES)) {
+    oRole.PROCESSES.forEach(proc => {
+      (proc.PRIVILEGES || []).forEach(priv => {
+        privileges.push({
+          PROCESSID: proc.PROCESSID,
+          PROCESSNAME: proc.PROCESSNAME,
+          PRIVILEGEID: [priv.PRIVILEGEID], // Si es un array, ajusta aquí
+          PRIVILEGENAME: priv.PRIVILEGENAME,
+          VIEWID: proc.VIEWID,
+          VIEWNAME: proc.VIEWNAME,
+          APPLICATIONID: proc.APPLICATIONID,
+          APPLICATIONNAME: proc.APPLICATIONNAME
+        });
+      });
+    });
+  } else if (Array.isArray(oRole.PRIVILEGES)) {
+    privileges = oRole.PRIVILEGES;
+  }
+
+  // Enriquecer los privilegios con VIEWNAME y APPLICATIONNAME si no existen
+  const viewCatalog = this.getView().getModel("viewCatalogModel").getProperty("/valuesAll") || [];
+  const appCatalog = this.getView().getModel("applicationCatalogModel").getProperty("/valuesAll") || [];
+
+  const enrichedPrivileges = (privileges || []).map(priv => {
+    const view = viewCatalog.find(v => v.VALUEID === priv.VIEWID);
+    const app = appCatalog.find(a => a.VALUEID === priv.APPLICATIONID);
+    return {
+      ...priv,
+      VIEWNAME: priv.VIEWNAME || (view ? view.VALUE : ""),
+      APPLICATIONNAME: priv.APPLICATIONNAME || (app ? app.VALUE : "")
+    };
+  });
 
   // Cargar los datos en el modelo del diálogo
-  const oModel = this.getView().getModel("newRoleModel");
+  let oModel = this.getView().getModel("roleDialogModel");
+  if (!oModel) {
+    oModel = new JSONModel();
+    this.getView().setModel(oModel, "roleDialogModel");
+  }
   oModel.setData({
     ROLEID: oRole.ROLEID,
     ROLENAME: oRole.ROLENAME,
     DESCRIPTION: oRole.DESCRIPTION,
-    PRIVILEGES: oRole.PRIVILEGES || [],
+    PRIVILEGES: enrichedPrivileges,
     NEW_PROCESSID: "",
-    NEW_PRIVILEGES: []
+    NEW_PRIVILEGES: [],
+    NEW_VIEWID: "",
+    NEW_APPID: ""
   });
-
+  oModel.refresh(true);
 
   // Establecer modo edición
   const oUiState = this.getView().getModel("uiState");
   oUiState.setProperty("/dialogMode", "edit");
 
-
-  this._pDialog.then(function (oDialog) {
+  this._pEditDialog.then(function (oDialog) {
     oDialog.setTitle("Editar Rol");
     oDialog.open();
   });
@@ -563,27 +571,39 @@ _handleRoleAction: async function (options) {
       });
     },
 
-// Cuando le doy a seleccionas una aplicación
+// Cuando le doy a seleccionas una aplicación filtrado de aplicaciones
 onApplicationChange: function (oEvent) {
   const sAppId = oEvent.getSource().getSelectedKey();
-
-  // Solo actualiza la aplicación seleccionada en el modelo
   const oModel = this.getView().getModel("newRoleModel");
   oModel.setProperty("/NEW_APPID", sAppId);
-
-  // (Opcional) limpia vista y proceso
-   oModel.setProperty("/NEW_VIEWID", "");
-   oModel.setProperty("/NEW_PROCESSID", "");
-
-  console.log("Aplicación seleccionada:", sAppId);
+  oModel.setProperty("/NEW_VIEWID", "");
+  oModel.setProperty("/NEW_PROCESSID", "");
+  // No filtrar nada, deja el modelo como estáF
 },
-
 
 // Cuando seleccionas una view y se despliega, bueno arriba se despliegan datos
 onViewChange: async function (oEvent) {
 
   console.log("Vista seleccionada:", oEvent.getSource().getSelectedKey());
 },
+
+//PARA CUANDO VA A EDITAR EL ROL ESTO PASA, NO FILTRO AUNA
+
+onEditApplicationChange: function (oEvent) {
+  const sAppId = oEvent.getSource().getSelectedKey();
+  const oModel = this.getView().getModel("roleDialogModel");
+  oModel.setProperty("/NEW_APPID", sAppId);
+  oModel.setProperty("/NEW_VIEWID", "");
+  oModel.setProperty("/NEW_PROCESSID", "");
+  // No filtrar nada, deja el modelo como está
+},
+
+onEditViewChange: function (oEvent) {
+  
+  onsole.log("Vista seleccionada:", oEvent.getSource().getSelectedKey());
+
+},
+
 
 
   });
