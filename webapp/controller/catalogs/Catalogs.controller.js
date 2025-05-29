@@ -117,7 +117,7 @@ sap.ui.define(
                   CURRENT: true,
                   REGDATE: new Date().toISOString(),
                   REGTIME: new Date().toISOString(),
-                  REGUSER: "MIGUEL",
+                  REGUSER: sessionStorage.getItem("USERID"),
                 }
               ],
             },
@@ -265,7 +265,7 @@ sap.ui.define(
               "IMAGE": oEditedData.IMAGE,
               "DESCRIPTION": oEditedData.DESCRIPTION,
               "ACTIVED": oEditedData.DETAIL_ROW.ACTIVED,
-              "REGUSER": "Miguel"
+              "REGUSER": sessionStorage.getItem("USERID"),
             }
           };
           // Llamada a la API para actualizar
