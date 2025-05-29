@@ -93,8 +93,8 @@
           selectionChange="onCompanySelected"
           placeholder="Compañía (selecciona)">
         <core:Item
-            key="{companies>COMPANYID}"
-            text="{companies>COMPANYNAME}" />
+            key="{companies>COMPANYID}"      
+            text="{companies>COMPANYNAME}" />   
       </ComboBox>
 
       <!-- ComboBox de departamentos -->
@@ -102,6 +102,7 @@
           id="comboBoxCedis"
           items="{departments>/departments}"
           selectedKey="{newUserModel>/DEPARTMENTID}"
+          selectionChange="onDepartmentSelected"
           placeholder="Departamento (selecciona)">
         <core:Item
             key="{departments>DEPARTMENTID}"
