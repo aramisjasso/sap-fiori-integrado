@@ -19,6 +19,7 @@ sap.ui.define([
     // @ts-ignore
     // @ts-ignore
 // @ts-ignore
+// @ts-ignore
 ], function (BaseController, JSONModel, Log, Fragment, MessageToast, MessageBox) {
     "use strict";
 
@@ -47,6 +48,7 @@ sap.ui.define([
         loadUsers: function () {
             var oTable = this.byId("IdTable1UsersManageTable");
             var oModel = new sap.ui.model.json.JSONModel();
+            // @ts-ignore
             // @ts-ignore
             // @ts-ignore
             // @ts-ignore
@@ -114,6 +116,7 @@ sap.ui.define([
                 }
             } catch (error) {
                 console.error("Error al cargar compañías:", error);
+                // @ts-ignore
                 sap.m.MessageBox.error("Error al cargar compañías. Por favor, intente nuevamente.");
             }
         },
@@ -175,6 +178,7 @@ sap.ui.define([
                 }
             } catch (error) {
                 console.error("Error al cargar departamentos:", error);
+                // @ts-ignore
                 sap.m.MessageBox.error("Error al cargar departamentos. Por favor, intente nuevamente.");
             }
         },
@@ -307,7 +311,9 @@ sap.ui.define([
                     controller: this // <-- MUY IMPORTANTE
                 }).then(function (oDialog) {
                     this._oCreateUserDialog = oDialog;
+                    // @ts-ignore
                     this.getView().addDependent(oDialog);
+                    // @ts-ignore
                     this.loadRoles();
                     oDialog.open();
                 }.bind(this));
@@ -374,14 +380,17 @@ sap.ui.define([
             .then(data => {
                 var errorObj = (data && Array.isArray(data.value) && data.value[0] && data.value[0].error) ? data.value[0] : data;
                 if (errorObj && errorObj.error) {
+                    // @ts-ignore
                     sap.m.MessageBox.error("Error al agregar usuario: " + (errorObj.message || "No se pudo agregar el usuario."));
                     return;
                 }
+                // @ts-ignore
                 sap.m.MessageToast.show("Usuario agregado correctamente");
                 that.loadUsers();
                 if (oDialog) oDialog.close();
             })
             .catch(err => {
+                // @ts-ignore
                 sap.m.MessageBox.error("Error de red al agregar usuario: " + err.message);
             });
         },
@@ -409,9 +418,12 @@ sap.ui.define([
                 return;
             }
 
-            // Prepara el modelo para edición (copia profunda)
             var oEditUserModel = new sap.ui.model.json.JSONModel(JSON.parse(JSON.stringify(oSelected)));
             oView.setModel(oEditUserModel, "editUserModel");
+
+            // Carga compañías y departamentos antes de abrir el diálogo
+            this.loadEditCompanies();
+            this.loadEditDeptos();
 
             if (!this._oEditUserDialog) {
                 sap.ui.core.Fragment.load({
@@ -422,7 +434,7 @@ sap.ui.define([
                     this._oEditUserDialog = oDialog;
                     oView.addDependent(oDialog);
                     // @ts-ignore
-                    this.loadRoles(); // Si quieres recargar roles
+                    this.loadRoles();
                     this._oEditUserDialog.open();
                     // @ts-ignore
                     this._fillEditRolesVBox();
@@ -514,14 +526,17 @@ sap.ui.define([
             .then(data => {
                 var errorObj = (data && Array.isArray(data.value) && data.value[0] && data.value[0].error) ? data.value[0] : data;
                 if (errorObj && errorObj.error) {
+                    // @ts-ignore
                     sap.m.MessageBox.error("Error al editar usuario: " + (errorObj.message || "No se pudo editar el usuario."));
                     return;
                 }
+                // @ts-ignore
                 sap.m.MessageToast.show("Usuario editado correctamente");
                 that.loadUsers();
                 if (oDialog) oDialog.close();
             })
             .catch(err => {
+                // @ts-ignore
                 sap.m.MessageBox.error("Error de red al editar usuario: " + err.message);
             });
         },
@@ -570,14 +585,17 @@ sap.ui.define([
             .then(data => {
                 var errorObj = (data && Array.isArray(data.value) && data.value[0] && data.value[0].error) ? data.value[0] : data;
                 if (errorObj && errorObj.error) {
+                    // @ts-ignore
                     sap.m.MessageBox.error("Error al eliminar usuario: " + (errorObj.message || "No se pudo eliminar el usuario."));
                     return;
                 }
+                // @ts-ignore
                 sap.m.MessageToast.show("Usuario eliminado correctamente");
                 that.loadUsers();
                 that.getView().getModel("viewModel").setProperty("/buttonsEnabled", false);
             })
             .catch(err => {
+                // @ts-ignore
                 sap.m.MessageBox.error("Error de red al eliminar usuario: " + err.message);
             });
         },
@@ -620,14 +638,17 @@ sap.ui.define([
             .then(data => {
                 var errorObj = (data && Array.isArray(data.value) && data.value[0] && data.value[0].error) ? data.value[0] : data;
                 if (errorObj && errorObj.error) {
+                    // @ts-ignore
                     sap.m.MessageBox.error("Error al desactivar usuario: " + (errorObj.message || "No se pudo desactivar el usuario."));
                     return;
                 }
+                // @ts-ignore
                 sap.m.MessageToast.show("Usuario desactivado correctamente");
                 that.loadUsers();
                 that.getView().getModel("viewModel").setProperty("/buttonsEnabled", false);
             })
             .catch(err => {
+                // @ts-ignore
                 sap.m.MessageBox.error("Error de red al desactivar usuario: " + err.message);
             });
         },
@@ -670,14 +691,17 @@ sap.ui.define([
             .then(data => {
                 var errorObj = (data && Array.isArray(data.value) && data.value[0] && data.value[0].error) ? data.value[0] : data;
                 if (errorObj && errorObj.error) {
+                    // @ts-ignore
                     sap.m.MessageBox.error("Error al activar usuario: " + (errorObj.message || "No se pudo activar el usuario."));
                     return;
                 }
+                // @ts-ignore
                 sap.m.MessageToast.show("Usuario activado correctamente");
                 that.loadUsers();
                 that.getView().getModel("viewModel").setProperty("/buttonsEnabled", false);
             })
             .catch(err => {
+                // @ts-ignore
                 sap.m.MessageBox.error("Error de red al activar usuario: " + err.message);
             });
         },
@@ -737,7 +761,21 @@ sap.ui.define([
             if (!detailRow) return "";
             if (detailRow.DELETED) return "Eliminado";
             if (detailRow.ACTIVED) return "Activo";
-            return "Desactivado";
+            return "Inactivo";
+        },
+
+        formatStatusText: function (detailRow) {
+            if (!detailRow) return "";
+            if (detailRow.ACTIVED === true && detailRow.DELETED === false) return "Activo";
+            if (detailRow.ACTIVED === false && detailRow.DELETED === true) return "Inactivo";
+            return "";
+        },
+
+        formatStatusState: function (detailRow) {
+            if (!detailRow) return "None";
+            if (detailRow.ACTIVED === true && detailRow.DELETED === false) return "Success";
+            if (detailRow.ACTIVED === false && detailRow.DELETED === true) return "Warning";
+            return "None";
         },
 
         onCompanySelected: function (oEvent) {
@@ -768,6 +806,130 @@ sap.ui.define([
             var oModel = this.getView().getModel("newUserModel");
             oModel.setProperty("/DEPARTMENTID", oDept.RAW.VALUEID); // VALUEID
             oModel.setProperty("/DEPARTMENT", oDept.RAW.VALUE);     // VALUE
+        },
+
+        // ============= CARGAR COMPAÑÍAS PARA EDICIÓN =============
+        loadEditCompanies: async function () {
+            try {
+                const res = await fetch("http://localhost:3033/api/sec/usersroles/getAllCompanies", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" }
+                });
+
+                if (!res.ok) throw new Error("Error en la respuesta del servidor.");
+
+                const data = await res.json();
+                console.log("Respuesta cruda de getAllCompanies (edit):", data);
+
+                const aAllCompanies = Array.isArray(data.value) ? data.value : (Array.isArray(data) ? data : []);
+                const aFilteredCompanies = aAllCompanies.filter(
+                    (company) => company.DETAIL_ROW?.ACTIVED && !company.DETAIL_ROW?.DELETED
+                );
+
+                const companiesFormatted = aFilteredCompanies.map((company) => ({
+                    COMPANYID: company.COMPANYID, // Número
+                    COMPANYNAME: "IdCompanies-" + company.VALUEID, // Identificador compuesto
+                    COMPANYALIAS: company.VALUE, // Nombre visible
+                    RAW: company
+                }));
+
+                const oModel = this.getView().getModel("editCompanies") || new sap.ui.model.json.JSONModel();
+                oModel.setData({ companies: companiesFormatted, originalData: aFilteredCompanies });
+                if (!this.getView().getModel("editCompanies")) {
+                    this.getView().setModel(oModel, "editCompanies");
+                }
+            } catch (error) {
+                console.error("Error al cargar compañías (edit):", error);
+                // @ts-ignore
+                sap.m.MessageBox.error("Error al cargar compañías. Por favor, intente nuevamente.");
+            }
+        },
+        // ============= FIN CARGAR COMPAÑÍAS PARA EDICIÓN =============
+
+        // ============= CARGAR DEPARTAMENTOS PARA EDICIÓN =============
+        loadEditDeptos: async function () {
+            try {
+                var oUserModel = this.getView().getModel("editUserModel");
+                var sCompanyName = oUserModel.getProperty("/COMPANYNAME");
+
+                if (!sCompanyName) {
+                    console.warn("No hay compañía seleccionada para cargar departamentos (edit).");
+                    // No mostrar MessageBox aquí, solo salir silenciosamente
+                    return;
+                }
+
+                var companyIdStr = sCompanyName;
+                console.log("Solicitando departamentos para (edit):", companyIdStr);
+
+                const res = await fetch("http://localhost:3033/api/sec/usersroles/getDepartmentsByCompany", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ companyIdStr: companyIdStr })
+                });
+
+                if (!res.ok) throw new Error("Error en la respuesta del servidor.");
+
+                const data = await res.json();
+                const aAllDepartments = Array.isArray(data.value) ? data.value : (Array.isArray(data) ? data : []);
+                var oUserCompanyId = oUserModel.getProperty("/COMPANYID");
+                const aFilteredDepartments = aAllDepartments.filter(
+                    (dept) =>
+                        dept.DETAIL_ROW?.ACTIVED &&
+                        !dept.DETAIL_ROW?.DELETED &&
+                        dept.VALUEPAID === companyIdStr &&
+                        dept.COMPANYID === oUserCompanyId
+                );
+
+                const departmentsFormatted = aFilteredDepartments.map((dept) => ({
+                    DEPARTMENTID: dept.VALUEID,
+                    DEPARTMENTNAME: dept.VALUE,
+                    DEPARTMENTALIAS: dept.ALIAS,
+                    RAW: dept
+                }));
+
+                const oModel = this.getView().getModel("editDepartments") || new sap.ui.model.json.JSONModel();
+                oModel.setData({ departments: departmentsFormatted, originalData: aFilteredDepartments });
+                if (!this.getView().getModel("editDepartments")) {
+                    this.getView().setModel(oModel, "editDepartments");
+                }
+            } catch (error) {
+                // Solo muestra el error si sí había compañía seleccionada
+                if (this.getView().getModel("editUserModel").getProperty("/COMPANYNAME")) {
+                    console.error("Error al cargar departamentos (edit):", error);
+                    // @ts-ignore
+                    sap.m.MessageBox.error("Error al cargar departamentos. Por favor, intente nuevamente.");
+                }
+            }
+        },
+        // ============= FIN CARGAR DEPARTAMENTOS PARA EDICIÓN =============
+
+        onEditCompanySelected: function (oEvent) {
+            var oComboBox = oEvent.getSource();
+            var oItem = oComboBox.getSelectedItem();
+            var oCtx = oItem.getBindingContext("editCompanies");
+            var oCompany = oCtx.getObject();
+
+            var oModel = this.getView().getModel("editUserModel");
+            oModel.setProperty("/COMPANYID", oCompany.RAW.COMPANYID);
+            oModel.setProperty("/COMPANYNAME", oCompany.COMPANYNAME);
+            oModel.setProperty("/COMPANYALIAS", oCompany.RAW.VALUE);
+
+            // Limpia departamento al cambiar compañía
+            oModel.setProperty("/DEPARTMENTID", "");
+            oModel.setProperty("/DEPARTMENT", "");
+
+            this.loadEditDeptos();
+        },
+
+        onEditDepartmentSelected: function (oEvent) {
+            var oComboBox = oEvent.getSource();
+            var oItem = oComboBox.getSelectedItem();
+            var oCtx = oItem.getBindingContext("editDepartments");
+            var oDept = oCtx.getObject();
+
+            var oModel = this.getView().getModel("editUserModel");
+            oModel.setProperty("/DEPARTMENTID", oDept.RAW.VALUEID);
+            oModel.setProperty("/DEPARTMENT", oDept.RAW.VALUE);
         },
     });
 });

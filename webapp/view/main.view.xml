@@ -27,10 +27,10 @@
       <Text text="Fecha de nacimiento:" class="sapUiTinyMarginEnd sapUiTinyMarginBottom" />
       <Text text="{appView>/currentUser/BIRTHDAYDATE}" class="sapUiTinyMarginBottom" />
     </HBox>
-    <HBox>
-      <Text text="Empresa:" class="sapUiTinyMarginEnd sapUiTinyMarginBottom" />
-      <Text text="{appView>/currentUser/COMPANYNAME}" class="sapUiTinyMarginBottom" />
-    </HBox>
+ <HBox>
+  <Text text="Empresa:" class="sapUiTinyMarginEnd sapUiTinyMarginBottom" />
+  <Text text="{appView>/currentUser/COMPANYALIAS}" class="sapUiTinyMarginBottom" />
+</HBox>
     <HBox>
       <Text text="Departamento:" class="sapUiTinyMarginEnd sapUiTinyMarginBottom" />
       <Text text="{appView>/currentUser/DEPARTMENT}" class="sapUiTinyMarginBottom" />

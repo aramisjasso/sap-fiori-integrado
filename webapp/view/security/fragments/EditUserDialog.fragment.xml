@@ -11,20 +11,44 @@
         <VBox id="EditUserDialogVbox" class="sapUiSmallMargin">
             <Input id="inputEditUserId" placeholder="ID de Usuario (texto)" value="{editUserModel>/USERID}" editable="false"/>
 
-            <Input id="inputEditUsername" placeholder="Nombre Completo (texto)" value="{editUserModel>/USERNAME}" />
+            <Input
+                id="inputEditUsername"
+                placeholder="Nombre Completo (obligatorio)"
+                value="{editUserModel>/USERNAME}"
+                required="true"
+                valueStateText="Obligatorio" />
             
             <Input id="inputEditUserPhoneNumber" placeholder="Número telefónico (texto)" value="{editUserModel>/PHONENUMBER}" />
 
-            <Input id="inputEditUserEmail" placeholder="Correo Electrónico (texto)" value="{editUserModel>/EMAIL}" />
+            <Input
+                id="inputEditUserEmail"
+                placeholder="Correo Electrónico (ejemplo@dominio.com, obligatorio)"
+                value="{editUserModel>/EMAIL}"
+                required="true"
+                valueStateText="Formato: ejemplo@dominio.com" />
 
             <DatePicker id="inputEditUserBirthdayDate" placeholder="Fecha de nacimiento (YYYY-MM-DD)" value="{editUserModel>/BIRTHDAYDATE}" />
 
-            <ComboBox id="comboBoxEditCompanies" items="{/companies}" selectionChange="onCompanySelected" placeholder="Compañía">
-                <core:Item id="EditCompanyItem" key="{COMPANYID}" text="{COMPANYNAMME}" />
+            <!-- ComboBox de compañías en EditUserDialog.fragment.xml -->
+            <ComboBox
+                id="comboBoxEditCompanies"
+                items="{editCompanies>/companies}"
+                selectedKey="{editUserModel>/COMPANYNAME}"
+                selectionChange="onEditCompanySelected"
+                required="true"
+                placeholder="Compañía (obligatorio)">
+              <core:Item key="{editCompanies>COMPANYNAME}" text="{editCompanies>COMPANYALIAS}" />
             </ComboBox>
             
-            <ComboBox id="comboBoxEditCedis" items="{/cedis}" selectionChange="onCediSelected" placeholder="Departamento">
-                <core:Item id="EditCediItem" key="{CEDIID}" text="{CEDINAME}" />
+            <!-- ComboBox de departamentos en EditUserDialog.fragment.xml -->
+            <ComboBox
+                id="comboBoxEditCedis"
+                items="{editDepartments>/departments}"
+                selectedKey="{editUserModel>/DEPARTMENTID}"
+                selectionChange="onEditDepartmentSelected"
+                required="true"
+                placeholder="Departamento (obligatorio)">
+              <core:Item key="{editDepartments>DEPARTMENTID}" text="{editDepartments>DEPARTMENTNAME}" />
             </ComboBox>
 
             <ComboBox id="comboBoxEditRoles" items="{roles>/roles}" selectionChange="onRoleSelected" placeholder="Selecciona un Rol">

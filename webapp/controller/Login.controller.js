@@ -36,21 +36,26 @@ sap.ui.define([
 
         console.log("Lista de usuarios procesada:", userList);
 
-        // Busca usuario por email y password
+        // Busca usuario por email y password (sin filtrar por estado)
         const user = userList.find(u => {
           const userEmail = (u.EMAIL || "").trim().toLowerCase();
           const userPassword = (u.PASSWORD || "").trim();
           const inputEmail = oLogin.email.trim().toLowerCase();
           const inputPassword = oLogin.password.trim();
-          
-          console.log(`Comparando: ${userEmail} === ${inputEmail} && ${userPassword} === ${inputPassword}`);
-          
           return userEmail === inputEmail && userPassword === inputPassword;
         });
 
         if (!user) {
           sap.m.MessageToast.show("Correo o contraseña incorrectos");
           console.log("Usuario no encontrado");
+          return;
+        }
+
+        // Verifica si está activo
+        const isActive = user.DETAIL_ROW && user.DETAIL_ROW.ACTIVED === true && user.DETAIL_ROW.DELETED === false;
+        if (!isActive) {
+          sap.m.MessageToast.show("El usuario no está activo. Contacta al administrador.");
+          console.log("Usuario inactivo o eliminado");
           return;
         }
 

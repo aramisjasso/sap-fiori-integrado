@@ -62,12 +62,13 @@
                 </tl:template>
             </tl:Column>
 
-            <tl:Column id="IdColumnCompanyName" sortProperty="COMPANYNAME" width="12rem" autoResizable="true" resizable="true">
-                <m:Label id="IdLabelCompanyName" text="COMPANYNAME" />
-                <tl:template>
-                    <m:Text id="IdTextCompanyName" text="{COMPANYNAME}" wrapping="false"/>
-                </tl:template>
-            </tl:Column>
+      <tl:Column id="IdColumnCompanyAlias" sortProperty="COMPANYALIAS" width="12rem" autoResizable="true" resizable="true">
+    <m:Label id="IdLabelCompanyAlias" text="COMPANYNAME" />
+    <tl:template>
+        <m:Text id="IdTextCompanyAlias" text="{COMPANYALIAS}" wrapping="false"/>
+    </tl:template>
+</tl:Column>
+
 
             <tl:Column id="IdColumnEmail" sortProperty="EMAIL" width="15rem" autoResizable="true" resizable="true">
                 <m:Label id="IdLabelEmail" text="EMAIL" />
@@ -107,7 +108,9 @@
             <tl:Column id="IdColumnStatus" sortProperty="STATUS" width="12rem" autoResizable="true" resizable="true">
                 <m:Label id="IdLabelStatus" text="STATUS" />
                 <tl:template>
-                    <m:Text id="IdTextStatus" text="{path: 'DETAIL_ROW', formatter: '.formatStatus'}"/>
+                    <m:ObjectStatus
+                        text="{path: 'DETAIL_ROW', formatter: '.formatStatusText'}"
+                        state="{path: 'DETAIL_ROW', formatter: '.formatStatusState'}"/>
                 </tl:template>
             </tl:Column>
 

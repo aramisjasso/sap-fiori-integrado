@@ -18,8 +18,10 @@
             <!-- Campo existente: ID de Usuario -->
       <Input
           id="inputUserId"
-          placeholder="ID de Usuario (texto)"
-          value="{newUserModel>/USERID}" />
+          placeholder="ID de Usuario (obligatorio)"
+          value="{newUserModel>/USERID}"
+          required="true"
+          valueStateText="Obligatorio" />
 
              <Input
           id="InputUserName"
@@ -29,9 +31,11 @@
       <!-- Nuevo: Campo PASSWORD -->
       <Input
           id="inputUserPassword"
-          placeholder="Contraseña (texto)"
+          placeholder="Contraseña (mínimo 6 caracteres, obligatorio)"
           type="Password"
-          value="{newUserModel>/PASSWORD}" />
+          value="{newUserModel>/PASSWORD}"
+          required="true"
+          valueStateText="Obligatorio, mínimo 6 caracteres" />
       
       <!-- Nuevo: Campo ALIAS -->
       <Input
@@ -42,12 +46,16 @@
       <!-- Nuevo: Campos FIRSTNAME y LASTNAME -->
       <Input
           id="inputUserFirstName"
-          placeholder="Primer Nombre (texto)"
-          value="{newUserModel>/FIRSTNAME}" />
+          placeholder="Primer Nombre (obligatorio)"
+          value="{newUserModel>/FIRSTNAME}"
+          required="true"
+          valueStateText="Obligatorio" />
       <Input
           id="inputUserLastName"
-          placeholder="Apellido (texto)"
-          value="{newUserModel>/LASTNAME}" />
+          placeholder="Apellido (obligatorio)"
+          value="{newUserModel>/LASTNAME}"
+          required="true"
+          valueStateText="Obligatorio" />
 
       <!-- Nuevo: Campo EMPLOYEEID -->
       <Input
@@ -64,20 +72,26 @@
       <!-- Campo existente: Número telefónico -->
       <Input
           id="inputUserPhoneNumber"
-          placeholder="Número telefónico (texto)"
-          value="{newUserModel>/PHONENUMBER}" />
+          placeholder="Número telefónico (10 dígitos)"
+          value="{newUserModel>/PHONENUMBER}"
+          valueStateText="Solo números, 10 dígitos" />
 
       <!-- Campo existente: Correo Electrónico -->
       <Input
           id="inputUserEmail"
-          placeholder="Correo Electrónico (texto)"
-          value="{newUserModel>/EMAIL}" />
+          placeholder="Correo Electrónico (ejemplo@dominio.com, obligatorio)"
+          value="{newUserModel>/EMAIL}"
+          required="true"
+          valueStateText="Formato: ejemplo@dominio.com" />
 
       <!-- Campo existente: Fecha de nacimiento -->
       <DatePicker
           id="inputUserBirthdayDate"
           placeholder="Fecha de nacimiento (YYYY-MM-DD)"
-          value="{newUserModel>/BIRTHDAYDATE}" />
+          value="{newUserModel>/BIRTHDAYDATE}"
+          valueFormat="yyyy-MM-dd"
+          displayFormat="yyyy-MM-dd"
+          valueStateText="Formato: YYYY-MM-DD" />
 
       <!-- Nuevo: Campo AVATAR (URL del avatar o similar) -->
       <Input
@@ -91,7 +105,8 @@
           items="{companies>/companies}"
           selectedKey="{newUserModel>/COMPANYID}"
           selectionChange="onCompanySelected"
-          placeholder="Compañía (selecciona)">
+          required="true"
+          placeholder="Compañía (obligatorio)">
         <core:Item
             key="{companies>COMPANYID}"      
             text="{companies>COMPANYNAME}" />   
@@ -103,7 +118,8 @@
           items="{departments>/departments}"
           selectedKey="{newUserModel>/DEPARTMENTID}"
           selectionChange="onDepartmentSelected"
-          placeholder="Departamento (selecciona)">
+          required="true"
+          placeholder="Departamento (obligatorio)">
         <core:Item
             key="{departments>DEPARTMENTID}"
             text="{departments>DEPARTMENTNAME}" />
