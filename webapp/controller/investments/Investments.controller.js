@@ -66,7 +66,9 @@ sap.ui.define([
         mult: 3.0,
         rr: 2.0,
         // Parámetros para Momentum
-        period: 14,
+        long: this._CONSTANTS.DEFAULT_LONG_SMA,
+        short: this._CONSTANTS.DEFAULT_SHORT_SMA,
+        adx: 2,
         startDate: null,
         endDate: null,
         controlsVisible: false,

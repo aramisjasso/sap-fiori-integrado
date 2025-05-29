@@ -161,6 +161,44 @@
                             visible="{= ${strategyAnalysisModel>/strategyKey} === 'Supertrend' }"
                         />
 
+                        <HBox justifyContent="SpaceBetween" width="100%" 
+                            visible="{= ${strategyAnalysisModel>/strategyKey} === 'Momentum' }">
+                            <VBox width="48%">
+                                <Label text="Long MA"/>
+                                <Input value="{strategyAnalysisModel>/long}" type="Number" placeholder="Ej: 200"/>
+                            </VBox>
+                            <VBox width="48%">
+                                <Label text="Short MA"/>
+                                <Input value="{strategyAnalysisModel>/short}" type="Number" placeholder="Ej: 50"/>
+                            </VBox>
+                        </HBox>
+
+                        <Label
+                            class="sapUiTinyMarginTop"
+                            text="RSI Period"
+                            visible="{= ${strategyAnalysisModel>/strategyKey} === 'Momentum' }"
+                        />
+                        <StepInput
+                            value="{strategyAnalysisModel>/rsi}"
+                            min="2"
+                            step="1"
+                            width="100%"
+                            visible="{= ${strategyAnalysisModel>/strategyKey} === 'Momentum' }"
+                        />
+
+                        <Label
+                            class="sapUiTinyMarginTop"
+                            text="ADX Period"
+                            visible="{= ${strategyAnalysisModel>/strategyKey} === 'Momentum' }"
+                        />
+                        <StepInput
+                            value="{strategyAnalysisModel>/adx}"
+                            min="2"
+                            step="1"
+                            width="100%"
+                            visible="{= ${strategyAnalysisModel>/strategyKey} === 'Momentum' }"
+                        />
+
                         <VBox width="100%">
                             <Label text="{i18n>startDateLabelText}" />
                             <DatePicker
