@@ -458,7 +458,7 @@ sap.ui.define([
             "STARTDATE": this._formatDate(oStrategyModel.getProperty("/startDate")), 
             "ENDDATE": this._formatDate(oStrategyModel.getProperty("/endDate")),  
             "AMOUNT": oStrategyModel.getProperty("/amount"),
-            "USERID": "ARAMIS",
+            "USERID": sessionStorage.getItem("USERID"),
             "SPECS": SPECS
         }
     };
@@ -685,7 +685,7 @@ sap.ui.define([
         sap.ui.core.BusyIndicator.show(0);
         
         try {
-            const USERID = "ARAMIS";
+            const USERID = sessionStorage.getItem("USERID");
             const response = await fetch("http://localhost:3033/api/inv/getSimulation", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
