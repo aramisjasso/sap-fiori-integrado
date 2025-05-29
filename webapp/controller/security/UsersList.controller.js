@@ -75,28 +75,36 @@ sap.ui.define([
         // ============= CARGAR COMPAÑÍAS DINÁMICAMENTE =============
         loadCompanies: async function () {
             try {
-                // Llama a tu API para obtener las compañías (labelID=IdCompanies)
-                const res = await fetch("http://localhost:3033/api/catalogos/getAllLabels?type=value&labelID=IdCompanies", {
-                    method: "GET",
+                const res = await fetch("http://localhost:3033/api/sec/usersroles/getAllCompanies", {
+                    method: "POST",
                     headers: { "Content-Type": "application/json" }
                 });
 
                 if (!res.ok) throw new Error("Error en la respuesta del servidor.");
 
                 const data = await res.json();
-                console.log("Datos de compañías traidos:", data);
-                // data es un array de values
-                const aAllCompanies = Array.isArray(data) ? data : [];
+                console.log("Respuesta cruda de getAllCompanies:", data);
+
+                // Si la respuesta tiene propiedad 'value', úsala, si no, asume que es el array directamente
+                const aAllCompanies = Array.isArray(data.value) ? data.value : (Array.isArray(data) ? data : []);
+                console.log("Array de compañías procesado:", aAllCompanies);
+
+                // Filtra solo activas y no eliminadas
                 const aFilteredCompanies = aAllCompanies.filter(
                     (company) => company.DETAIL_ROW?.ACTIVED && !company.DETAIL_ROW?.DELETED
                 );
+                console.log("Compañías activas y no eliminadas:", aFilteredCompanies);
 
-                // Formatea para el ComboBox
+                // Mapea los campos para el ComboBox y para el modelo de usuario
                 const companiesFormatted = aFilteredCompanies.map((company) => ({
-                    COMPANYID: company.COMPANYID,
-                    COMPANYALIAS: company.VALUEID,
-                    COMPANYNAME: company.VALUE
+                    COMPANYID: company.VALUEID,      // Usar VALUEID como clave única
+                    COMPANYNAME: company.VALUE,      // Mostrar VALUE como nombre visible
+                    COMPANYALIAS: company.ALIAS,
+                    IMAGE: company.IMAGE,
+                    DESCRIPTION: company.DESCRIPTION,
+                    RAW: company                     // Guarda el objeto original por si lo necesitas
                 }));
+                console.log("Compañías formateadas para ComboBox:", companiesFormatted);
 
                 // Modelo y asignación
                 const oModel = this.getView().getModel("companies") || new sap.ui.model.json.JSONModel();
@@ -106,7 +114,6 @@ sap.ui.define([
                 }
             } catch (error) {
                 console.error("Error al cargar compañías:", error);
-                // @ts-ignore
                 sap.m.MessageBox.error("Error al cargar compañías. Por favor, intente nuevamente.");
             }
         },
@@ -115,54 +122,59 @@ sap.ui.define([
         // ============= CARGAR DEPARTAMENTOS DINÁMICAMENTE =============
         loadDeptos: async function () {
             try {
-                // Llama a tu API para obtener los departamentos (labelID=IdDepartment)
-                const res = await fetch("http://localhost:3033/api/catalogos/getAllLabels?type=value&labelID=IdDepartment", {
-                    method: "GET",
-                    headers: { "Content-Type": "application/json" }
+                var oUserModel = this.getView().getModel("newUserModel");
+                var sCompanyName = oUserModel.getProperty("/COMPANYNAME"); // Ya es el identificador compuesto
+
+                if (!sCompanyName) {
+                    console.warn("No hay compañía seleccionada para cargar departamentos.");
+                    return;
+                }
+
+                var companyIdStr = sCompanyName;
+                console.log("Solicitando departamentos para:", companyIdStr);
+
+                const res = await fetch("http://localhost:3033/api/sec/usersroles/getDepartmentsByCompany", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ companyIdStr: companyIdStr })
                 });
 
                 if (!res.ok) throw new Error("Error en la respuesta del servidor.");
 
                 const data = await res.json();
-                const aAllDepartments = Array.isArray(data) ? data : [];
-                let aFilteredDepartment = aAllDepartments.filter(
-                    (department) => department.DETAIL_ROW?.ACTIVED && !department.DETAIL_ROW?.DELETED
+                console.log("Respuesta cruda de getDepartmentsByCompany:", data);
+
+                const aAllDepartments = Array.isArray(data.value) ? data.value : (Array.isArray(data) ? data : []);
+                console.log("Array de departamentos procesado:", aAllDepartments);
+
+                // Filtra solo los departamentos que pertenecen a la compañía seleccionada
+                var oUserCompanyId = oUserModel.getProperty("/COMPANYID");
+                const aFilteredDepartments = aAllDepartments.filter(
+                    (dept) =>
+                        dept.DETAIL_ROW?.ACTIVED &&
+                        !dept.DETAIL_ROW?.DELETED &&
+                        dept.VALUEPAID === companyIdStr &&
+                        dept.COMPANYID === oUserCompanyId
                 );
+                console.log("Departamentos activos y no eliminados:", aFilteredDepartments);
 
-                // Obtén la compañía seleccionada (COMPANYALIAS)
-                let sSelectedCompany = "";
-                if (this.getView().getModel("newUserModel")) {
-                    sSelectedCompany = this.getView().getModel("newUserModel").getProperty("/COMPANYALIAS");
-                } else if (this.getView().getModel("editUserModel")) {
-                    sSelectedCompany = this.getView().getModel("editUserModel").getProperty("/COMPANYALIAS");
-                }
-
-                // Filtra departamentos por compañía seleccionada
-                if (sSelectedCompany) {
-                    aFilteredDepartment = aFilteredDepartment.filter((department) => {
-                        if (department.VALUEPAID) {
-                            const parts = department.VALUEPAID.split("-");
-                            return parts[1] === sSelectedCompany;
-                        }
-                        return false;
-                    });
-                }
-
-                // Formatea para el ComboBox
-                const departmentFormatted = aFilteredDepartment.map((department) => ({
-                    DEPARTMENTID: department.VALUEID,
-                    DEPARTMENTNAME: department.VALUE
+                const departmentsFormatted = aFilteredDepartments.map((dept) => ({
+                    DEPARTMENTID: dept.VALUEID,
+                    DEPARTMENTNAME: dept.VALUE,
+                    DEPARTMENTALIAS: dept.ALIAS,
+                    IMAGE: dept.IMAGE,
+                    DESCRIPTION: dept.DESCRIPTION,
+                    RAW: dept
                 }));
+                console.log("Departamentos formateados para ComboBox:", departmentsFormatted);
 
-                // Modelo y asignación
                 const oModel = this.getView().getModel("departments") || new sap.ui.model.json.JSONModel();
-                oModel.setData({ departments: departmentFormatted, originalData: aFilteredDepartment });
+                oModel.setData({ departments: departmentsFormatted, originalData: aFilteredDepartments });
                 if (!this.getView().getModel("departments")) {
                     this.getView().setModel(oModel, "departments");
                 }
             } catch (error) {
                 console.error("Error al cargar departamentos:", error);
-                // @ts-ignore
                 sap.m.MessageBox.error("Error al cargar departamentos. Por favor, intente nuevamente.");
             }
         },
@@ -285,6 +297,9 @@ sap.ui.define([
             });
             oView.setModel(oNewUserModel, "newUserModel");
 
+            // CARGA LAS COMPAÑÍAS ANTES DE ABRIR EL DIALOG
+            this.loadCompanies();
+
             if (!this._oCreateUserDialog) {
                 sap.ui.core.Fragment.load({
                     id: this.getView().getId(), // Usa el id de la vista
@@ -292,12 +307,10 @@ sap.ui.define([
                     controller: this // <-- MUY IMPORTANTE
                 }).then(function (oDialog) {
                     this._oCreateUserDialog = oDialog;
-                    // @ts-ignore
                     this.getView().addDependent(oDialog);
-                    // @ts-ignore
                     this.loadRoles();
                     oDialog.open();
-                }.bind(this)); // <-- IMPORTANTE: bind(this)
+                }.bind(this));
             } else {
                 this.loadRoles();
                 this._oCreateUserDialog.open();
@@ -728,18 +741,33 @@ sap.ui.define([
         },
 
         onCompanySelected: function (oEvent) {
-            // Actualiza COMPANYALIAS en el modelo según la selección
             var oComboBox = oEvent.getSource();
-            var sSelectedKey = oComboBox.getSelectedKey();
-            var sSelectedAlias = oComboBox.getSelectedItem().getKey(); // O usa otro campo si tu modelo lo requiere
+            var oItem = oComboBox.getSelectedItem();
+            var oCtx = oItem.getBindingContext("companies");
+            var oCompany = oCtx.getObject();
 
             var oModel = this.getView().getModel("newUserModel");
-            oModel.setProperty("/COMPANYID", sSelectedKey);
-            oModel.setProperty("/COMPANYALIAS", sSelectedAlias);
+            // Mapea como lo pides:
+            oModel.setProperty("/COMPANYID", oCompany.RAW.COMPANYID); // Número
+            oModel.setProperty("/COMPANYNAME", "IdCompanies-" + oCompany.RAW.VALUEID); // Identificador compuesto
+            oModel.setProperty("/COMPANYALIAS", oCompany.RAW.VALUE); // Nombre visible
 
-            // Carga los departamentos dependientes
+            // Limpia departamento al cambiar compañía
+            oModel.setProperty("/DEPARTMENTID", "");
+            oModel.setProperty("/DEPARTMENT", "");
+
             this.loadDeptos();
-        }
+        },
 
+        onDepartmentSelected: function (oEvent) {
+            var oComboBox = oEvent.getSource();
+            var oItem = oComboBox.getSelectedItem();
+            var oCtx = oItem.getBindingContext("departments");
+            var oDept = oCtx.getObject();
+
+            var oModel = this.getView().getModel("newUserModel");
+            oModel.setProperty("/DEPARTMENTID", oDept.RAW.VALUEID); // VALUEID
+            oModel.setProperty("/DEPARTMENT", oDept.RAW.VALUE);     // VALUE
+        },
     });
 });
