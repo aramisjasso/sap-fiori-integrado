@@ -40,6 +40,7 @@
                         }"
                     selectedKey="{newValueModel>/ValuePaid1}"
                     selectionChange=".onLabelIdChange"
+                    enabled="{= !${newValueModel>/isEdit} }"
                 >
                     <core:Item
                         key="{values>LABELID}"
@@ -78,7 +79,6 @@
                     state="{newValueModel>/DETAIL_ROW/ACTIVED}"
                     customTextOn="ACTIVO"
                     customTextOff="INACTIVO"
-                   
                 />
 
                 <!-- Agrega más campos según necesites -->
