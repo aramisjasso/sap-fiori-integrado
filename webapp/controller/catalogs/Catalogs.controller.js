@@ -143,7 +143,7 @@ sap.ui.define(
             this._oAddDialog.open();
           }
         },
-
+        //------------------------------Guarda los datos al añadir un nuevo label
         onSaveCatalog: function () {
           var oModel = this.getView().getModel("addCatalogModel");
           var oData = oModel.getData();
@@ -175,8 +175,7 @@ sap.ui.define(
             label: oData,
           };
 
-          console.log("Data:", JSON.stringify(oData));
-
+          // LLama a la función nueva
           $.ajax({
             url: "http://localhost:3033/api/catalogos/createLabel?type=1", // Ajusta tu endpoint
             method: "POST",
@@ -197,7 +196,8 @@ sap.ui.define(
             },
           });
         },
-
+      
+        //Cancela añadir datos en catalago
         onCancelAddCatalog: function () {
           if (this._oAddDialog) {
             this._oAddDialog.close();
@@ -207,7 +207,7 @@ sap.ui.define(
         // ---------------------------------------------------- FIN PARA AGREGAR UN NUEVO LABEL
 
         // ---------------------------------------------------- PARA EDITAR UN LABEL
-
+        //Carga el modelo de datos en la modal
         onEditPressed: function () {
           if (!this._oSelectedItem) return;
 
@@ -236,7 +236,7 @@ sap.ui.define(
             this._oEditDialog.open();
           }
         },
-
+        //Ejecución de botón para guardar los cambios
         onSaveEdit: function () {
           var oEditModel = this.getView().getModel("editModel");
           var oEditedData = oEditModel.getData();
@@ -310,7 +310,7 @@ sap.ui.define(
             }.bind(this),
           });
         },
-
+        // Cancelar actualización de datos
         onCancelEdit: function () {
           if (this._oEditDialog) {
             this._oEditDialog.close();
