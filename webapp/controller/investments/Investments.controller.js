@@ -32,7 +32,15 @@ sap.ui.define([
       this._setupViewDelegates();
     },
 
-    // Inicialización de modelos
+    /**
+     * Inicializa los modelos de datos principales de la vista:
+     * - symbolModel: símbolos disponibles
+     * - priceData: datos de precios históricos
+     * - viewModel: estado de la UI
+     * - strategyAnalysisModel: parámetros y estado de la estrategia seleccionada
+     * - strategyResultModel: resultados de la simulación
+     * - historyModel: historial de simulaciones
+     */
     _initModels: function() {
         // Modelo de símbolos
         const oSymbolsModel = new JSONModel();
@@ -107,7 +115,9 @@ sap.ui.define([
       this._oSelectedStrategy = null;
     },
 
-    // Carga textos i18n
+    /**
+     * Carga los textos i18n y define las estrategias disponibles en el modelo.
+     */
     _loadI18nTexts: function() {
       var oI18nModel = this.getOwnerComponent().getModel("i18n");
       if (!oI18nModel) {
@@ -129,6 +139,11 @@ sap.ui.define([
       }
     },
 
+    /**
+     * Evento al cambiar el símbolo seleccionado.
+     * Limpia resultados previos y carga el historial de precios para el nuevo símbolo.
+     * @param {sap.ui.base.Event} oEvent
+     */
     onSymbolChange: function(oEvent) {
         let sSymbol;
         const oSelectedItem = oEvent.getParameter("selectedItem");
@@ -160,6 +175,12 @@ sap.ui.define([
         this._loadPriceHistory(sSymbol);
     },
 
+    
+    /**
+     * Llama a la API para obtener el historial de precios del símbolo seleccionado.
+     * Actualiza el modelo de resultados con los datos recibidos.
+     * @param {string} sSymbol
+     */
     _loadPriceHistory: async function(sSymbol) {
         try {
             const TESTING_SYMBOL = sSymbol; 
@@ -205,7 +226,9 @@ sap.ui.define([
       });
     },
 
-    // Configurar gráfico
+    /**
+     * Configura las propiedades visuales del gráfico principal (VizFrame) después de renderizar la vista.
+     */
     _onViewAfterRendering: function() {
         const oVizFrame = this.byId("idVizFrame");
         if (!oVizFrame) return;
@@ -247,7 +270,9 @@ sap.ui.define([
           });
     },
 
-    // Métodos de fecha
+    /**
+     * Establece el rango de fechas por defecto (últimos 6 meses) en el modelo de análisis.
+     */
     _setDefaultDates: function() {
       var oModel = this.getView().getModel("strategyAnalysisModel");
       var oToday = new Date();
@@ -279,6 +304,11 @@ sap.ui.define([
         oStrategyAnalysisModel.setProperty("/strategyKey", sSelectedKey);
     },
 
+    /**
+     * Actualiza las medidas del gráfico (VizFrame) según la estrategia seleccionada.
+     * @param {string} sStrategyKey
+     * @param {sap.ui.model.json.JSONModel} oStrategyAnalysisModel
+     */
     _updateChartMeasuresFeed: function (sStrategyKey, oStrategyAnalysisModel) {
       // Define las medidas base que siempre deben estar presentes
       // ¡IMPORTANTE! Usar los NOMBRES de las MeasureDefinition del XML, no los nombres de las propiedades de los datos.
@@ -299,7 +329,6 @@ sap.ui.define([
        
       // Actualiza la propiedad del modelo con las medidas actuales
       oStrategyAnalysisModel.setProperty("/chartMeasuresFeed", aMeasures);
-      console.log("Medidas actualizadas en el modelo:", aMeasures);
       const oVizFrame = this.byId("idVizFrame");
       if (oVizFrame) {
         // Obtener el dataset actual
@@ -332,7 +361,10 @@ sap.ui.define([
       }
     },
 
-
+    /**
+     * Evento al presionar el botón de ejecutar análisis.
+     * Valida los inputs, llama a la API de simulación y actualiza la UI con los resultados.
+     */
     onRunAnalysisPress: async function() {
         var oView = this.getView();
         var oStrategyModel = oView.getModel("strategyAnalysisModel");
@@ -365,6 +397,14 @@ sap.ui.define([
 
     },
 
+    
+   
+    /**
+     * Valida que se haya seleccionado una estrategia y un símbolo antes de ejecutar el análisis.
+     * @param {sap.ui.model.json.JSONModel} oStrategyModel
+     * @param {string} sSymbol
+     * @returns {boolean}
+     */
     _validateAnalysisInputs: function(oStrategyModel, sSymbol) {
       if (!oStrategyModel.getProperty("/strategyKey")) {
         MessageBox.warning("Seleccione una estrategia");
@@ -377,6 +417,14 @@ sap.ui.define([
       return true;
     },
 
+    /**
+     * Llama a la API de simulación de estrategias con los parámetros seleccionados.
+     * Construye el cuerpo de la petición según la estrategia.
+     * Actualiza el modelo de resultados con la respuesta.
+     * @param {string} sSymbol
+     * @param {sap.ui.model.json.JSONModel} oStrategyModel
+     * @param {sap.ui.model.json.JSONModel} oResultModel
+     */
     _callAnalysisAPISimulation: async function(sSymbol, oStrategyModel, oResultModel) {
         const strategy = oStrategyModel.getProperty("/strategyKey");
         let apiStrategyName = strategy;
@@ -483,9 +531,14 @@ sap.ui.define([
     }
     },
 
+    /**
+     * Procesa la respuesta de la simulación y actualiza el modelo de resultados.
+     * También actualiza el balance del usuario.
+     * @param {object} data - Datos de la simulación recibidos de la API
+     * @param {sap.ui.model.json.JSONModel} oStrategyModel
+     * @param {sap.ui.model.json.JSONModel} oResultModel
+     */
     _handleAnalysisResponse: function(data, oStrategyModel, oResultModel) {
-        // console.log("Datos para la gráfica:", data.CHART_DATA);
-        // console.log("Señales:", data.SIGNALS);
         
         // Actualizar modelo de resultados
         oResultModel.setData({
@@ -523,6 +576,12 @@ sap.ui.define([
         MessageToast.show(`Se añadieron ${this.formatNumber(gainPerShare)} a tu balance.`);
     },
 
+    /**
+     * Prepara los datos para la tabla y el gráfico, combinando precios e indicadores.
+     * @param {Array} aData - Datos de precios e indicadores
+     * @param {Array} aSignals - Señales de compra/venta
+     * @returns {Array} Datos listos para mostrar en tabla y gráfico
+     */
     _prepareTableData: function(aData, aSignals) {
         if (!Array.isArray(aData)) return [];
         
@@ -649,7 +708,10 @@ sap.ui.define([
         return `$${parseFloat(value).toFixed(2)}`;
     },
 
-    // Historial de inversiones
+    /**
+     * Abre el historial de simulaciones en un popover y carga los datos del usuario.
+     * @param {sap.ui.base.Event} oEvent
+     */
     onHistoryPress: function(oEvent) {
         // 1. Crear popover como lo tenías originalmente
         if (!this._oHistoryPopover) {
@@ -680,7 +742,10 @@ sap.ui.define([
         });
     },
 
-    // Función separada para cargar datos (mejor organizado)
+    /**
+     * Llama a la API para obtener el historial de simulaciones del usuario.
+     * Actualiza el modelo 'historyModel' con los datos recibidos.
+     */
     _loadHistoryData: async function() {
         sap.ui.core.BusyIndicator.show(0);
         
@@ -695,9 +760,6 @@ sap.ui.define([
             if (!response.ok) throw new Error("Error en respuesta");
             
             const data = await response.json();
-
-            console.log(data)
-            
             const transformedData = data.value.map(simulation => ({
                 date: new Date(simulation.STARTDATE),
                 strategyName: simulation.SIMULATIONNAME,
@@ -736,6 +798,10 @@ sap.ui.define([
         }
     },
 
+    /**
+     * Maneja la selección de simulaciones en el historial (modo carga o eliminación).
+     * @param {sap.ui.base.Event} oEvent
+     */
    onSelectionChange: function(oEvent) {
         const oModel = this.getView().getModel("historyModel");
         const bDeleteMode = oModel.getProperty("/isDeleteMode");
@@ -762,6 +828,9 @@ sap.ui.define([
                 oSelectedItem ? oSelectedItem.getBindingContext("historyModel").getObject() : null);
     },
 
+    /**
+     * Carga una simulación seleccionada en los modelos para su análisis.
+     */
     onLoadStrategy: async function() {
         try {
             if (!this._oSelectedStrategy) {
@@ -814,7 +883,11 @@ sap.ui.define([
         }
     },
 
-    // Función auxiliar para cargar detalles
+    /**
+     * Llama a la API para obtener los detalles de una simulación específica.
+     * @param {string} sSimulationId
+     * @returns {Promise<object>} Detalles de la simulación
+     */
     _loadSimulationDetails: async function(sSimulationId) {
         const response = await fetch(`http://localhost:3033/api/inv/getSimulation?id=${sSimulationId}`, {
             method: "POST",
@@ -828,7 +901,14 @@ sap.ui.define([
         return data.value?.[0] || {};
     },
 
-    // Función para actualizar modelos
+    /**
+     * Actualiza los modelos de análisis y resultados con los datos de una simulación cargada.
+     * @param {object} params
+     *   - simulationDetail: Detalles de la simulación
+     *   - oStrategyModel: Modelo de análisis
+     *   - oResultModel: Modelo de resultados
+     *   - oItem: Objeto de la simulación en el historial
+     */
     _updateModelsWithSimulationData: function({ simulationDetail, oStrategyModel, oResultModel, oItem }) {
          // Actualizar el ComboBox de símbolo
         const oSymbolSelector = this.byId("symbolSelector");
@@ -904,221 +984,232 @@ sap.ui.define([
         this._oSelectedStrategy = null;
     },
 
-onDeleteSelected: function() {
-    const oTable = sap.ui.getCore().byId("historyTable"); // Mejor usa this.byId() en lugar de sap.ui.getCore().byId()
-    const aSelectedItems = oTable.getSelectedItems();
-    
-    if (!aSelectedItems.length) {
-        MessageToast.show("Selecciona al menos una simulación para eliminar");
-        return;
-    }
+    /**
+     * Elimina una o varias simulaciones seleccionadas llamando a la API.
+     */
+    onDeleteSelected: function() {
+        const oTable = sap.ui.getCore().byId("historyTable"); // Mejor usa this.byId() en lugar de sap.ui.getCore().byId()
+        const aSelectedItems = oTable.getSelectedItems();
+        
+        if (!aSelectedItems.length) {
+            MessageToast.show("Selecciona al menos una simulación para eliminar");
+            return;
+        }
 
-    const sMessage = aSelectedItems.length === 1 
-        ? "¿Deseas eliminar la simulación seleccionada?" 
-        : `¿Deseas eliminar las ${aSelectedItems.length} simulaciones seleccionadas?`;
+        const sMessage = aSelectedItems.length === 1 
+            ? "¿Deseas eliminar la simulación seleccionada?" 
+            : `¿Deseas eliminar las ${aSelectedItems.length} simulaciones seleccionadas?`;
 
-    MessageBox.confirm(sMessage, {
-        title: "Confirmar eliminación",
-        onClose: async function(oAction) {
-            if (oAction === MessageBox.Action.OK) {
-                try {
-                    sap.ui.core.BusyIndicator.show(0);
-                    
-                    // Obtener todos los IDs seleccionados
-                    const aSimulationIds = aSelectedItems.map(oItem => {
-                        return oItem.getBindingContext("historyModel").getObject().details.SIMULATIONID;
-                    });
+        MessageBox.confirm(sMessage, {
+            title: "Confirmar eliminación",
+            onClose: async function(oAction) {
+                if (oAction === MessageBox.Action.OK) {
+                    try {
+                        sap.ui.core.BusyIndicator.show(0);
+                        
+                        // Obtener todos los IDs seleccionados
+                        const aSimulationIds = aSelectedItems.map(oItem => {
+                            return oItem.getBindingContext("historyModel").getObject().details.SIMULATIONID;
+                        });
 
-                    // Llamar al endpoint de delete múltiple
-                    const response = await fetch("http://localhost:3033/api/inv/deleteSimulations", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            userID: "ARAMIS",  // Hardcodeado como en tu ejemplo, pero idealmente usa el user real
-                            simulationIDs: aSimulationIds
-                        })
-                    });
+                        // Llamar al endpoint de delete múltiple
+                        const response = await fetch("http://localhost:3033/api/inv/deleteSimulations", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                userID: "ARAMIS",  // Hardcodeado como en tu ejemplo, pero idealmente usa el user real
+                                simulationIDs: aSimulationIds
+                            })
+                        });
 
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.message || "Error al eliminar las simulaciones");
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.message || "Error al eliminar las simulaciones");
+                        }
+
+                        // Recargar datos y actualizar UI
+                        await this._loadHistoryData();
+                        
+                        // Mensaje de éxito personalizado
+                        const sSuccessMessage = aSimulationIds.length === 1
+                            ? "Simulación eliminada correctamente"
+                            : `${aSimulationIds.length} simulaciones eliminadas correctamente`;
+                        
+                        MessageToast.show(sSuccessMessage);
+
+                        // Resetear modo de eliminación
+                        const oModel = this.getView().getModel("historyModel");
+                        oModel.setProperty("/isDeleteMode", false);
+                        oModel.setProperty("/selectedCount", 0);
+
+                    } catch (error) {
+                        console.error("Error detallado:", error);
+                        MessageBox.error(error.message || "Error al eliminar las simulaciones");
+                    } finally {
+                        sap.ui.core.BusyIndicator.hide();
                     }
-
-                    // Recargar datos y actualizar UI
-                    await this._loadHistoryData();
-                    
-                    // Mensaje de éxito personalizado
-                    const sSuccessMessage = aSimulationIds.length === 1
-                        ? "Simulación eliminada correctamente"
-                        : `${aSimulationIds.length} simulaciones eliminadas correctamente`;
-                    
-                    MessageToast.show(sSuccessMessage);
-
-                    // Resetear modo de eliminación
-                    const oModel = this.getView().getModel("historyModel");
-                    oModel.setProperty("/isDeleteMode", false);
-                    oModel.setProperty("/selectedCount", 0);
-
-                } catch (error) {
-                    console.error("Error detallado:", error);
-                    MessageBox.error(error.message || "Error al eliminar las simulaciones");
-                } finally {
-                    sap.ui.core.BusyIndicator.hide();
                 }
-            }
-        }.bind(this)
-    });
-},
+            }.bind(this)
+        });
+    },
 
-onStrategyNameClick: function(oEvent) {
-    // Crear un Input temporal
-    const oIdentifier = oEvent.getSource();
-    const sCurrentValue = oIdentifier.getTitle();
-    
-    // Crear Input
-    const oInput = new sap.m.Input({
-        value: sCurrentValue,
-        valueLiveUpdate: true,
-        submit: function(oEvent) {
-            const sNewValue = oEvent.getParameter("value");
-            if (sNewValue && sNewValue.trim()) {
-                oIdentifier.setTitle(sNewValue);
-                // Aquí iría tu lógica de guardado
-                this.onStrategyNameSubmit(oEvent);
-            }
-            oInput.destroy();
-            oIdentifier.setVisible(true);
-        }.bind(this)
-    });
-
-    // Ocultar identificador y mostrar input
-    oIdentifier.setVisible(false);
-    oInput.placeAt(oIdentifier.getParent().getId());
-    oInput.focus();
-},
-
-onStrategyNameChange: function(oEvent) {
-    const sNewValue = oEvent.getParameter("value");
-    const oInput = oEvent.getSource();
-    const sPath = oInput.getBindingContext("historyModel").getPath();
-    
-    // Optional: Add validation here if needed
-    if (!sNewValue.trim()) {
-        oInput.setValueState("Error");
-        oInput.setValueStateText("El nombre no puede estar vacío");
-        return;
-    }
-    
-    oInput.setValueState("None");
-},
-
-onStrategyNameSubmit: async function(oEvent) {
-    const oInput = oEvent.getSource();
-    const sNewValue = oEvent.getParameter("value");
-    const sPath = oInput.getBindingContext("historyModel").getPath();
-    
-    // Validar nombre vacío
-    if (!sNewValue.trim()) {
-        MessageToast.show("El nombre no puede estar vacío");
-        return;
-    }
-
-    try {
-        // Obtener el ID de simulación del contexto
-        const oContext = oInput.getBindingContext("historyModel");
-        const oData = oContext.getObject();
-        const sSimulationId = oData.details.SIMULATIONID;
-
-        // Mostrar indicador de carga
-        sap.ui.core.BusyIndicator.show(0);
-
-        // Llamar a la API
-        const response = await fetch("http://localhost:3033/api/inv/updatesimulation", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                id: sSimulationId,
-                simulationName: sNewValue.trim()
-            })
+    onStrategyNameClick: function(oEvent) {
+        // Crear un Input temporal
+        const oIdentifier = oEvent.getSource();
+        const sCurrentValue = oIdentifier.getTitle();
+        
+        // Crear Input
+        const oInput = new sap.m.Input({
+            value: sCurrentValue,
+            valueLiveUpdate: true,
+            submit: function(oEvent) {
+                const sNewValue = oEvent.getParameter("value");
+                if (sNewValue && sNewValue.trim()) {
+                    oIdentifier.setTitle(sNewValue);
+                    // Aquí iría tu lógica de guardado
+                    this.onStrategyNameSubmit(oEvent);
+                }
+                oInput.destroy();
+                oIdentifier.setVisible(true);
+            }.bind(this)
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || "Error al actualizar el nombre");
-        }
-
-        // Actualizar modelo local
-        this.getView().getModel("historyModel").setProperty(sPath + "/strategyName", sNewValue.trim());
-        
-        // Desactivar edición
-        oInput.setEditable(false);
-        oInput.setValueState("None");
-        
-        // Mostrar mensaje de éxito
-        MessageToast.show("Nombre actualizado correctamente");
-
-        // Opcional: Recargar datos para asegurar sincronización
-        await this._loadHistoryData();
-
-    } catch (error) {
-        console.error("Error:", error);
-        MessageBox.error(error.message || "Error al actualizar el nombre");
-        oInput.setValueState("Error");
-        oInput.setValueStateText(error.message || "Error al actualizar");
-    } finally {
-        sap.ui.core.BusyIndicator.hide();
-    }
-},
-
-onEditSelected: function() {
-    const oTable = sap.ui.getCore().byId("historyTable");
-    const aSelectedItems = oTable.getSelectedItems();
-    
-    if (aSelectedItems.length !== 1) {
-        MessageToast.show("Selecciona una estrategia para editar");
-        return;
-    }
-
-    const aAllItems = oTable.getItems();
-    aAllItems.forEach(item => {
-        const oInput = item.getCells()[0];
-        oInput.setEditable(false);
-        oInput.setValueState("None");
-    });
-
-    const oSelectedItem = aSelectedItems[0];
-    const oInput = oSelectedItem.getCells()[0]; // Get Input directly from cell
-    
-    // Hacer editable el input
-    oInput.setEditable(true);
-    
-    // Dar foco y seleccionar texto
-    setTimeout(() => {
+        // Ocultar identificador y mostrar input
+        oIdentifier.setVisible(false);
+        oInput.placeAt(oIdentifier.getParent().getId());
         oInput.focus();
-        oInput.selectText(0, oInput.getValue().length);
-    }, 100);
-},
+    },
 
-onStrategyNameBlur: function(oEvent) {
-    const oInput = oEvent.getSource();
-    
-    if (oInput.getEditable()) {
-        const sNewValue = oInput.getValue();
-        const oContext = oInput.getBindingContext("historyModel");
-        const sOriginalValue = oContext.getObject().strategyName;
+    /**
+     * Permite editar el nombre de una simulación desde el historial.
+     * @param {sap.ui.base.Event} oEvent
+     */
+    onStrategyNameChange: function(oEvent) {
+        const sNewValue = oEvent.getParameter("value");
+        const oInput = oEvent.getSource();
+        const sPath = oInput.getBindingContext("historyModel").getPath();
         
-        if (sNewValue && sNewValue.trim()) {
-            this.onStrategyNameSubmit(oEvent);
-        } else {
-            // Si está vacío, revertir al valor original del modelo
-            oInput.setValue(sOriginalValue);
+        // Optional: Add validation here if needed
+        if (!sNewValue.trim()) {
+            oInput.setValueState("Error");
+            oInput.setValueStateText("El nombre no puede estar vacío");
+            return;
         }
         
-        // Desactivar edición
-        oInput.setEditable(false);
         oInput.setValueState("None");
-    }
-},
+    },
+
+    /**
+     * Envía el nuevo nombre de la simulación a la API y actualiza el modelo local.
+     * @param {sap.ui.base.Event} oEvent
+     */
+    onStrategyNameSubmit: async function(oEvent) {
+        const oInput = oEvent.getSource();
+        const sNewValue = oEvent.getParameter("value");
+        const sPath = oInput.getBindingContext("historyModel").getPath();
+        
+        // Validar nombre vacío
+        if (!sNewValue.trim()) {
+            MessageToast.show("El nombre no puede estar vacío");
+            return;
+        }
+
+        try {
+            // Obtener el ID de simulación del contexto
+            const oContext = oInput.getBindingContext("historyModel");
+            const oData = oContext.getObject();
+            const sSimulationId = oData.details.SIMULATIONID;
+
+            // Mostrar indicador de carga
+            sap.ui.core.BusyIndicator.show(0);
+
+            // Llamar a la API
+            const response = await fetch("http://localhost:3033/api/inv/updatesimulation", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: sSimulationId,
+                    simulationName: sNewValue.trim()
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Error al actualizar el nombre");
+            }
+
+            // Actualizar modelo local
+            this.getView().getModel("historyModel").setProperty(sPath + "/strategyName", sNewValue.trim());
+            
+            // Desactivar edición
+            oInput.setEditable(false);
+            oInput.setValueState("None");
+            
+            // Mostrar mensaje de éxito
+            MessageToast.show("Nombre actualizado correctamente");
+
+            // Opcional: Recargar datos para asegurar sincronización
+            await this._loadHistoryData();
+
+        } catch (error) {
+            console.error("Error:", error);
+            MessageBox.error(error.message || "Error al actualizar el nombre");
+            oInput.setValueState("Error");
+            oInput.setValueStateText(error.message || "Error al actualizar");
+        } finally {
+            sap.ui.core.BusyIndicator.hide();
+        }
+    },
+
+    onEditSelected: function() {
+        const oTable = sap.ui.getCore().byId("historyTable");
+        const aSelectedItems = oTable.getSelectedItems();
+        
+        if (aSelectedItems.length !== 1) {
+            MessageToast.show("Selecciona una estrategia para editar");
+            return;
+        }
+
+        const aAllItems = oTable.getItems();
+        aAllItems.forEach(item => {
+            const oInput = item.getCells()[0];
+            oInput.setEditable(false);
+            oInput.setValueState("None");
+        });
+
+        const oSelectedItem = aSelectedItems[0];
+        const oInput = oSelectedItem.getCells()[0]; // Get Input directly from cell
+        
+        // Hacer editable el input
+        oInput.setEditable(true);
+        
+        // Dar foco y seleccionar texto
+        setTimeout(() => {
+            oInput.focus();
+            oInput.selectText(0, oInput.getValue().length);
+        }, 100);
+    },
+
+    onStrategyNameBlur: function(oEvent) {
+        const oInput = oEvent.getSource();
+        
+        if (oInput.getEditable()) {
+            const sNewValue = oInput.getValue();
+            const oContext = oInput.getBindingContext("historyModel");
+            const sOriginalValue = oContext.getObject().strategyName;
+            
+            if (sNewValue && sNewValue.trim()) {
+                this.onStrategyNameSubmit(oEvent);
+            } else {
+                // Si está vacío, revertir al valor original del modelo
+                oInput.setValue(sOriginalValue);
+            }
+            
+            // Desactivar edición
+            oInput.setEditable(false);
+            oInput.setValueState("None");
+        }
+    },
 
     // ******** FILTRO ********** //
     onToggleAdvancedFilters: function() {
@@ -1134,6 +1225,9 @@ onStrategyNameBlur: function(oEvent) {
         }
     },
 
+    /**
+     * Aplica los filtros avanzados sobre el historial de simulaciones.
+     */
     _applyFilters: function() {
         const oTable = sap.ui.getCore().byId("historyTable");
         if (!oTable) return;
@@ -1213,25 +1307,14 @@ onStrategyNameBlur: function(oEvent) {
         const oInvestmentRange = sap.ui.getCore().byId("investmentRangeFilter");
         if (oInvestmentRange) {
             const [minInv, maxInv] = oInvestmentRange.getRange();
-            console.log("=== INICIO FILTRO INVERSIÓN ===");
-            console.log("Rango seleccionado:", {min: minInv, max: maxInv});
             
             aFilters.push(new Filter({
                 test: function(oItem) {
                     // Usar el monto inicial guardado
                     const amount = oItem.initialAmount;
-                    
-                    console.log("Evaluando estrategia:", {
-                        name: oItem.strategyName,
-                        montoInvertido: amount,
-                        rango: `${minInv} a ${maxInv}`,
-                        pasa: amount >= minInv && amount <= maxInv
-                    });
-                    
                     return amount >= minInv && amount <= maxInv;
                 }
             }));
-            console.log("=== FIN FILTRO INVERSIÓN ===");
         }
                 
         //// 4. Filtro de rentabilidad
@@ -1281,6 +1364,11 @@ onStrategyNameBlur: function(oEvent) {
         }
     },
 
+    /**
+     * Da formato a un número con dos decimales y separador de miles.
+     * @param {number|string} value
+     * @returns {string}
+     */
     formatNumber: function(value) {
         if (!value) return "0";
         
