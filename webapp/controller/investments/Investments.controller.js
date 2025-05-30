@@ -329,7 +329,6 @@ sap.ui.define([
        
       // Actualiza la propiedad del modelo con las medidas actuales
       oStrategyAnalysisModel.setProperty("/chartMeasuresFeed", aMeasures);
-      console.log("Medidas actualizadas en el modelo:", aMeasures);
       const oVizFrame = this.byId("idVizFrame");
       if (oVizFrame) {
         // Obtener el dataset actual
@@ -540,8 +539,6 @@ sap.ui.define([
      * @param {sap.ui.model.json.JSONModel} oResultModel
      */
     _handleAnalysisResponse: function(data, oStrategyModel, oResultModel) {
-        // console.log("Datos para la gráfica:", data.CHART_DATA);
-        // console.log("Señales:", data.SIGNALS);
         
         // Actualizar modelo de resultados
         oResultModel.setData({
@@ -763,9 +760,6 @@ sap.ui.define([
             if (!response.ok) throw new Error("Error en respuesta");
             
             const data = await response.json();
-
-            console.log(data)
-            
             const transformedData = data.value.map(simulation => ({
                 date: new Date(simulation.STARTDATE),
                 strategyName: simulation.SIMULATIONNAME,
@@ -1313,25 +1307,14 @@ sap.ui.define([
         const oInvestmentRange = sap.ui.getCore().byId("investmentRangeFilter");
         if (oInvestmentRange) {
             const [minInv, maxInv] = oInvestmentRange.getRange();
-            console.log("=== INICIO FILTRO INVERSIÓN ===");
-            console.log("Rango seleccionado:", {min: minInv, max: maxInv});
             
             aFilters.push(new Filter({
                 test: function(oItem) {
                     // Usar el monto inicial guardado
                     const amount = oItem.initialAmount;
-                    
-                    console.log("Evaluando estrategia:", {
-                        name: oItem.strategyName,
-                        montoInvertido: amount,
-                        rango: `${minInv} a ${maxInv}`,
-                        pasa: amount >= minInv && amount <= maxInv
-                    });
-                    
                     return amount >= minInv && amount <= maxInv;
                 }
             }));
-            console.log("=== FIN FILTRO INVERSIÓN ===");
         }
                 
         //// 4. Filtro de rentabilidad
