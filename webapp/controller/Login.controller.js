@@ -16,7 +16,7 @@ sap.ui.define([
 
     onLoginPress: async function () {
       const oLogin = this.getView().getModel("loginModel").getData();
-
+      /*
       try {
         // Llama a tu API para obtener todos los usuarios
         const response = await fetch("http://localhost:3033/api/sec/usersroles/usersCRUD?procedure=get&type=all", {
@@ -71,7 +71,7 @@ sap.ui.define([
         // Guarda el usuario autenticado en appView
         const oAppModel = this.getOwnerComponent().getModel("appView");
         oAppModel.setProperty("/isLoggedIn", true);
-        oAppModel.setProperty("/currentUser", user);
+        //oAppModel.setProperty("/currentUser", user);
 
         // Navega a la vista principal
         this.getOwnerComponent().getRouter().navTo("RouteMain");
@@ -80,7 +80,13 @@ sap.ui.define([
         console.error("Error al autenticar:", error);
         // @ts-ignore
         sap.m.MessageToast.show("Error al conectar con la API");
-      }
+      }*/
+        const oAppModel = this.getOwnerComponent().getModel("appView");
+        oAppModel.setProperty("/isLoggedIn", true);
+        //oAppModel.setProperty("/currentUser", user);
+
+        // Navega a la vista principal
+        this.getOwnerComponent().getRouter().navTo("RouteMain");
     },
 
     //Funcion para el ojito
