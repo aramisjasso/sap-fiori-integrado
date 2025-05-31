@@ -323,42 +323,59 @@ sap.ui.define(
 
         onDeletePressed: function () {
           if (!this._oSelectedItem) return;
-
           var oContext = this._oSelectedItem.getBindingContext();
           var oData = oContext.getObject();
+          var oValuesView = this.byId("XMLViewValues");
 
-          MessageBox.confirm("¿Está seguro de eliminar este registro?", {
-            actions: [MessageBox.Action.YES, MessageBox.Action.NO],
-            onClose: function (sAction) {
-              if (sAction === MessageBox.Action.YES) {
-                $.ajax({
-                  url: `http://localhost:3033/api/catalogos/deleteLabelOrValue?mode=physical&type=1&id=${oData.LABELID}`,
-                  method: "GET",
-                  contentType: "application/json",
-                  success: function () {
-                    MessageToast.show("Registro eliminado");
+    // Obtener los valores actuales
+var currentValues = this._aAllValues || [];
 
-                    // Actualización local del modelo
-                    var oTableModel = this.getView().getModel();
-                    var aData = oTableModel.getProperty("/value") || [];
+var relatedValues = currentValues.filter(
+  (item) => item.LABELID === oData.LABELID
+);
 
-                    // Encontrar y eliminar el registro
-                    var index = aData.findIndex(
-                      (item) => item.LABELID === oData.LABELID
-                    );
-                    if (index !== -1) {
-                      aData.splice(index, 1);
-                      oTableModel.setProperty("/value", aData);
-                    }
-                  }.bind(this),
-                  error: function (error) {
-                    MessageToast.show(
-                      "Error al eliminar: " + error.responseText
-                    );
-                  }.bind(this),
-                });
+var sMessage = relatedValues.length === 0
+  ? "Este registro no tiene valores asociados. ¿Está seguro de eliminar este catálogo vacío?"
+  : `Este catálogo tiene ${relatedValues.length} valor(es) asociado(s). ¿Está seguro de eliminarlo junto con sus registros?`;
+
+    MessageBox.confirm(sMessage, {
+      actions: [MessageBox.Action.YES, MessageBox.Action.NO],
+      onClose: function (sAction) {
+        if (sAction === MessageBox.Action.YES) {
+          $.ajax({
+            url: `http://localhost:3033/api/catalogos/deleteLabelOrValue?mode=physical&type=1&id=${oData.LABELID}`,
+            method: "GET",
+            contentType: "application/json",
+            success: function () {
+              MessageToast.show("Registro eliminado");
+
+              // Actualizar modelo principal
+              var oTableModel = this.getView().getModel();
+              var aData = oTableModel.getProperty("/value") || [];
+
+              var index = aData.findIndex(
+                (item) => item.LABELID === oData.LABELID
+              );
+              if (index !== -1) {
+                aData.splice(index, 1);
+                oTableModel.setProperty("/value", aData);
               }
+
+              this._aAllValues = this._aAllValues.filter(
+                (item) => item.LABELID !== oData.LABELID
+              );
+
+              oValuesView.getModel("values").setProperty("/selectedValue", null);
+            oValuesView.getModel("values").setProperty("/values", []);
             }.bind(this),
+            error: function (error) {
+              MessageToast.show(
+                "Error al eliminar: " + error.responseText
+              );
+            }.bind(this),
+          });
+        }
+      }.bind(this),
           });
         },
 

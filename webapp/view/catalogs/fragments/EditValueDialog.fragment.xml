@@ -44,7 +44,7 @@
                 >
                     <core:Item
                         key="{values>LABELID}"
-                        text="{values>LABELID}"
+                        text="{values>LABEL}"
                     />
                 </ComboBox>
 
@@ -59,7 +59,7 @@
                 >
                     <core:Item
                         key="{values>VALUEID}"
-                        text="{values>VALUEID}"
+                        text="{values>VALUE}"
                     />
                 </ComboBox>
 
