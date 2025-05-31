@@ -21,7 +21,7 @@
     columnsM="2">
 
     <m:Label text="ID del Rol" />
-    <m:Input value="{roleDialogModel>/ROLEID}" placeholder="Ej. IdAdmin" />
+<m:Input value="{roleDialogModel>/ROLEID}" placeholder="Ej. IdAdmin" />
 
     <m:Label text="Nombre del Rol" />
     <m:Input value="{roleDialogModel>/ROLENAME}" placeholder="Ej. Administrador" />
@@ -92,10 +92,7 @@
   </layout:SimpleForm>
 
   <m:buttons>
-    <m:Button
-      text="Guardar"
-      type="Emphasized"
-      press=".onSaveRole" />
+    <m:Button text="Guardar" type="Emphasized" press=".onSaveEditRole" />
     <m:Button text="Cancelar" press=".onDialogClose" />
   </m:buttons>
 </m:Dialog>

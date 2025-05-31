@@ -166,10 +166,7 @@ onAddPrivilege: function () {
 //Guardar el rol nuevo rol , crear rol, O EDITAR?
   onSaveRole: async function () {
   const oView = this.getView();
-  const oUiState = oView.getModel("uiState");
-  const bIsEditMode = oUiState?.getProperty("/dialogMode") === "edit";
-  // Usa el modelo correcto según el modo
-  const oData = oView.getModel(bIsEditMode ? "roleDialogModel" : "newRoleModel").getData();
+  const oData = oView.getModel("newRoleModel").getData();
 
   if (!oData.ROLEID || !oData.ROLENAME) {
     MessageToast.show("ID y Nombre del Rol son obligatorios.");
@@ -177,34 +174,66 @@ onAddPrivilege: function () {
   }
 
   try {
-    const sProcedure = bIsEditMode ? "patch" : "post";
-    const sMethod = "POST";
-
-    const response = await fetch(`http://localhost:3033/api/sec/usersroles/rolesCRUD?procedure=${sProcedure}`, {
-      method: sMethod,
+    const response = await fetch("http://localhost:3033/api/sec/usersroles/rolesCRUD?procedure=post", {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ROLEID: oData.ROLEID,
         ROLENAME: oData.ROLENAME,
         DESCRIPTION: oData.DESCRIPTION,
-        PRIVILEGES: oData.PRIVILEGES,
+        PRIVILEGES: (oData.PRIVILEGES || []).map(p => ({
+          PROCESSID: p.PROCESSID,
+          PRIVILEGEID: Array.isArray(p.PRIVILEGEID) ? p.PRIVILEGEID : [p.PRIVILEGEID]
+        }))
       })
     });
 
     if (!response.ok) throw new Error(await response.text());
-    MessageToast.show(bIsEditMode ? "Rol actualizado correctamente." : "Rol guardado correctamente.");
+    MessageToast.show("Rol guardado correctamente.");
 
-    // Cierra el diálogo correcto
-    if (bIsEditMode) {
-      this._pEditDialog.then(function (oDialog) { oDialog.close(); });
-    } else {
-      this._pDialog.then(function (oDialog) { oDialog.close(); });
-    }
-
+    this._pDialog.then(function (oDialog) { oDialog.close(); });
     this.loadRolesData();
 
   } catch (err) {
     MessageBox.error("Error al guardar el rol: " + err.message);
+  }
+},
+
+// Guardar edición de rol
+onSaveEditRole: async function () {
+  const oView = this.getView();
+  const oData = oView.getModel("roleDialogModel").getData();
+  const oOriginal = this.getOwnerComponent().getModel("selectedRole")?.getData();
+
+  if (!oData.ROLEID || !oData.ROLENAME) {
+    MessageToast.show("ID y Nombre del Rol son obligatorios.");
+    return;
+  }
+
+  try {
+    // Usa el ROLEID original en la URL, el nuevo en el body
+    const response = await fetch(`http://localhost:3033/api/sec/usersroles/rolesCRUD?procedure=put&roleid=${encodeURIComponent(oOriginal.ROLEID)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ROLEID: oData.ROLEID,
+        ROLENAME: oData.ROLENAME,
+        DESCRIPTION: oData.DESCRIPTION,
+        PRIVILEGES: (oData.PRIVILEGES || []).map(p => ({
+          PROCESSID: p.PROCESSID,
+          PRIVILEGEID: Array.isArray(p.PRIVILEGEID) ? p.PRIVILEGEID : [p.PRIVILEGEID]
+        }))
+      })
+    });
+
+    if (!response.ok) throw new Error(await response.text());
+    MessageToast.show("Rol actualizado correctamente.");
+
+    this._pEditDialog.then(function (oDialog) { oDialog.close(); });
+    this.loadRolesData();
+
+  } catch (err) {
+    MessageBox.error("Error al actualizar el rol: " + err.message);
   }
 },
 
@@ -328,18 +357,20 @@ onActivateRole: function () {
 
 //quitar los privilegios en lo de editar un rol
     onRemovePrivilege: function (oEvent) {
-      const oModel = this.getView().getModel("newRoleModel");
-      const oData = oModel.getData();
+  // Detectar el modo de la UI
+  const oUiState = this.getView().getModel("uiState");
+  const bIsEditMode = oUiState?.getProperty("/dialogMode") === "edit";
+  // Usar el modelo correcto según el modo
+  const oModel = this.getView().getModel(bIsEditMode ? "roleDialogModel" : "newRoleModel");
+  const oData = oModel.getData();
 
+  const oItem = oEvent.getSource().getParent();
+  const oContext = oItem.getBindingContext(bIsEditMode ? "roleDialogModel" : "newRoleModel");
+  const iIndex = oContext.getPath().split("/").pop();
 
-      const oItem = oEvent.getSource().getParent();
-      const oContext = oItem.getBindingContext("newRoleModel");
-      const iIndex = oContext.getPath().split("/").pop();
-
-
-      oData.PRIVILEGES.splice(iIndex, 1);
-      oModel.setData(oData);
-    },
+  oData.PRIVILEGES.splice(iIndex, 1);
+  oModel.setData(oData);
+},
 
 
     //Cargar los catalogos
