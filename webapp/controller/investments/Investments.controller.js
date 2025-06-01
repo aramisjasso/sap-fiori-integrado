@@ -1602,8 +1602,8 @@ onCloseColumnCustomizer: function() {
         if (!value) return "0";
         
         const oNumberFormat = NumberFormat.getFloatInstance({
-            maxFractionDigits: 2,
-            minFractionDigits: 2,
+            maxFractionDigits: 0,
+            minFractionDigits: 0,
             groupingEnabled: true
         });
         
