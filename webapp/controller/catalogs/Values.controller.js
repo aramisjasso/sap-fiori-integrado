@@ -303,7 +303,7 @@ sap.ui.define(
                   CURRENT: true,
                   REGDATE: new Date().toISOString(),
                   REGTIME: new Date().toISOString(),
-                  REGUSER: "MIGUEL",
+                  REGUSER: sessionStorage.getItem("USERID"),
                 },
               ],
             },
@@ -326,6 +326,9 @@ sap.ui.define(
               var currentValues = oValuesModel.getProperty("/values") || [];
               currentValues.push(oParams); // Asegúrate de agregar el objeto completo
               oValuesModel.setProperty("/values", currentValues);
+              currentValues = oValuesModel.getProperty("/AllValues") || [];
+              currentValues.push(oParams); // Asegúrate de agregar el objeto completo
+              oValuesModel.setProperty("/AllValues", currentValues);
 
               // Cerrar diálogo y limpiar
               this.onCancelValues();
@@ -421,7 +424,7 @@ sap.ui.define(
               IMAGE: oFormData.IMAGE || "",
               DESCRIPTION: oFormData.DESCRIPTION || "",
               ACTIVED: oFormData.DETAIL_ROW.ACTIVED,
-              REGUSER: "MIGUEL",
+              REGUSER: sessionStorage.getItem("USERID"),
               // Estructura anidada para DETAIL_ROW
             },
           };
@@ -455,6 +458,25 @@ sap.ui.define(
                 };
                 oValuesModel.setProperty("/values", currentValues);
               }
+
+              currentValues = oValuesModel.getProperty("/AllValues") || [];
+              var updatedIndex = currentValues.findIndex(
+                (item) => item.VALUEID === oFormData.VALUEID
+              );
+              currentValues.push(oParams); // Asegúrate de agregar el objeto completo
+              if (updatedIndex !== -1) {
+                currentValues[updatedIndex] = {
+                  ...currentValues[updatedIndex],
+                  VALUE: oFormData.VALUE,
+                  VALUEPAID: oFormData.VALUEPAID,
+                  ALIAS: oFormData.ALIAS,
+                  IMAGE: oFormData.IMAGE,
+                  DESCRIPTION: oFormData.DESCRIPTION,
+                  DETAIL_ROW: { ACTIVED: oFormData.DETAIL_ROW.ACTIVED },
+                };
+                oValuesModel.setProperty("/AllValues", currentValues);
+              }
+              
 
               // Cerrar diálogo y limpiar
               this.onCancelEdit();
@@ -509,6 +531,7 @@ sap.ui.define(
                       var filteredValues = currentValues.filter(
                         (item) => item.VALUEID !== oFormData.VALUEID
                       );
+                      
                       oValuesModel.setProperty("/values", filteredValues);
 
                       this._cleanModels();

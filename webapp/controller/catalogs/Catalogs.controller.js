@@ -117,7 +117,7 @@ sap.ui.define(
                   CURRENT: true,
                   REGDATE: new Date().toISOString(),
                   REGTIME: new Date().toISOString(),
-                  REGUSER: "MIGUEL",
+                  REGUSER: sessionStorage.getItem("USERID"),
                 }
               ],
             },
@@ -143,7 +143,7 @@ sap.ui.define(
             this._oAddDialog.open();
           }
         },
-
+        //------------------------------Guarda los datos al añadir un nuevo label
         onSaveCatalog: function () {
           var oModel = this.getView().getModel("addCatalogModel");
           var oData = oModel.getData();
@@ -175,8 +175,7 @@ sap.ui.define(
             label: oData,
           };
 
-          console.log("Data:", JSON.stringify(oData));
-
+          // LLama a la función nueva
           $.ajax({
             url: "http://localhost:3033/api/catalogos/createLabel?type=1", // Ajusta tu endpoint
             method: "POST",
@@ -197,7 +196,8 @@ sap.ui.define(
             },
           });
         },
-
+      
+        //Cancela añadir datos en catalago
         onCancelAddCatalog: function () {
           if (this._oAddDialog) {
             this._oAddDialog.close();
@@ -207,7 +207,7 @@ sap.ui.define(
         // ---------------------------------------------------- FIN PARA AGREGAR UN NUEVO LABEL
 
         // ---------------------------------------------------- PARA EDITAR UN LABEL
-
+        //Carga el modelo de datos en la modal
         onEditPressed: function () {
           if (!this._oSelectedItem) return;
 
@@ -236,7 +236,7 @@ sap.ui.define(
             this._oEditDialog.open();
           }
         },
-
+        //Ejecución de botón para guardar los cambios
         onSaveEdit: function () {
           var oEditModel = this.getView().getModel("editModel");
           var oEditedData = oEditModel.getData();
@@ -265,7 +265,7 @@ sap.ui.define(
               "IMAGE": oEditedData.IMAGE,
               "DESCRIPTION": oEditedData.DESCRIPTION,
               "ACTIVED": oEditedData.DETAIL_ROW.ACTIVED,
-              "REGUSER": "Miguel"
+              "REGUSER": sessionStorage.getItem("USERID"),
             }
           };
           // Llamada a la API para actualizar
@@ -310,7 +310,7 @@ sap.ui.define(
             }.bind(this),
           });
         },
-
+        // Cancelar actualización de datos
         onCancelEdit: function () {
           if (this._oEditDialog) {
             this._oEditDialog.close();
@@ -323,42 +323,59 @@ sap.ui.define(
 
         onDeletePressed: function () {
           if (!this._oSelectedItem) return;
-
           var oContext = this._oSelectedItem.getBindingContext();
           var oData = oContext.getObject();
+          var oValuesView = this.byId("XMLViewValues");
 
-          MessageBox.confirm("¿Está seguro de eliminar este registro?", {
-            actions: [MessageBox.Action.YES, MessageBox.Action.NO],
-            onClose: function (sAction) {
-              if (sAction === MessageBox.Action.YES) {
-                $.ajax({
-                  url: `http://localhost:3033/api/catalogos/deleteLabelOrValue?mode=physical&type=1&id=${oData.LABELID}`,
-                  method: "GET",
-                  contentType: "application/json",
-                  success: function () {
-                    MessageToast.show("Registro eliminado");
+    // Obtener los valores actuales
+var currentValues = this._aAllValues || [];
 
-                    // Actualización local del modelo
-                    var oTableModel = this.getView().getModel();
-                    var aData = oTableModel.getProperty("/value") || [];
+var relatedValues = currentValues.filter(
+  (item) => item.LABELID === oData.LABELID
+);
 
-                    // Encontrar y eliminar el registro
-                    var index = aData.findIndex(
-                      (item) => item.LABELID === oData.LABELID
-                    );
-                    if (index !== -1) {
-                      aData.splice(index, 1);
-                      oTableModel.setProperty("/value", aData);
-                    }
-                  }.bind(this),
-                  error: function (error) {
-                    MessageToast.show(
-                      "Error al eliminar: " + error.responseText
-                    );
-                  }.bind(this),
-                });
+var sMessage = relatedValues.length === 0
+  ? "Este registro no tiene valores asociados. ¿Está seguro de eliminar este catálogo vacío?"
+  : `Este catálogo tiene ${relatedValues.length} valor(es) asociado(s). ¿Está seguro de eliminarlo junto con sus registros?`;
+
+    MessageBox.confirm(sMessage, {
+      actions: [MessageBox.Action.YES, MessageBox.Action.NO],
+      onClose: function (sAction) {
+        if (sAction === MessageBox.Action.YES) {
+          $.ajax({
+            url: `http://localhost:3033/api/catalogos/deleteLabelOrValue?mode=physical&type=1&id=${oData.LABELID}`,
+            method: "GET",
+            contentType: "application/json",
+            success: function () {
+              MessageToast.show("Registro eliminado");
+
+              // Actualizar modelo principal
+              var oTableModel = this.getView().getModel();
+              var aData = oTableModel.getProperty("/value") || [];
+
+              var index = aData.findIndex(
+                (item) => item.LABELID === oData.LABELID
+              );
+              if (index !== -1) {
+                aData.splice(index, 1);
+                oTableModel.setProperty("/value", aData);
               }
+
+              this._aAllValues = this._aAllValues.filter(
+                (item) => item.LABELID !== oData.LABELID
+              );
+
+              oValuesView.getModel("values").setProperty("/selectedValue", null);
+            oValuesView.getModel("values").setProperty("/values", []);
             }.bind(this),
+            error: function (error) {
+              MessageToast.show(
+                "Error al eliminar: " + error.responseText
+              );
+            }.bind(this),
+          });
+        }
+      }.bind(this),
           });
         },
 
