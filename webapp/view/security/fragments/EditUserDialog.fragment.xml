@@ -9,7 +9,7 @@
         resizable="true"
     >
         <VBox id="EditUserDialogVbox" class="sapUiSmallMargin">
-            <Input id="inputEditUserId" placeholder="ID de Usuario (texto)" value="{editUserModel>/USERID}" editable="false"/>
+            <Input id="inputEditUserId" placeholder="ID de Usuario (texto)" value="{editUserModel>/USERID}" editable="true"/>
 
             <Input
                 id="inputEditUsername"
@@ -18,14 +18,27 @@
                 required="true"
                 valueStateText="Obligatorio" />
             
-            <Input id="inputEditUserPhoneNumber" placeholder="Número telefónico (texto)" value="{editUserModel>/PHONENUMBER}" />
-
+                   <HBox>
+                <Input id="editPhoneDigit0" width="2em" maxLength="1" liveChange="onEditPhoneDigitChange" value="{editUserModel>/PHONE_DIGITS/0}" type="Number" />
+                <Input id="editPhoneDigit1" width="2em" maxLength="1" liveChange="onEditPhoneDigitChange" value="{editUserModel>/PHONE_DIGITS/1}" type="Number" />
+                <Input id="editPhoneDigit2" width="2em" maxLength="1" liveChange="onEditPhoneDigitChange" value="{editUserModel>/PHONE_DIGITS/2}" type="Number" />
+                <Input id="editPhoneDigit3" width="2em" maxLength="1" liveChange="onEditPhoneDigitChange" value="{editUserModel>/PHONE_DIGITS/3}" type="Number" />
+                <Input id="editPhoneDigit4" width="2em" maxLength="1" liveChange="onEditPhoneDigitChange" value="{editUserModel>/PHONE_DIGITS/4}" type="Number" />
+                <Input id="editPhoneDigit5" width="2em" maxLength="1" liveChange="onEditPhoneDigitChange" value="{editUserModel>/PHONE_DIGITS/5}" type="Number" />
+                <Input id="editPhoneDigit6" width="2em" maxLength="1" liveChange="onEditPhoneDigitChange" value="{editUserModel>/PHONE_DIGITS/6}" type="Number" />
+                <Input id="editPhoneDigit7" width="2em" maxLength="1" liveChange="onEditPhoneDigitChange" value="{editUserModel>/PHONE_DIGITS/7}" type="Number" />
+                <Input id="editPhoneDigit8" width="2em" maxLength="1" liveChange="onEditPhoneDigitChange" value="{editUserModel>/PHONE_DIGITS/8}" type="Number" />
+                <Input id="editPhoneDigit9" width="2em" maxLength="1" liveChange="onEditPhoneDigitChange" value="{editUserModel>/PHONE_DIGITS/9}" type="Number" />
+            </HBox>
+     
             <Input
                 id="inputEditUserEmail"
                 placeholder="Correo Electrónico (ejemplo@dominio.com, obligatorio)"
                 value="{editUserModel>/EMAIL}"
                 required="true"
-                valueStateText="Formato: ejemplo@dominio.com" />
+                valueState="{= ${editUserModel>/EMAIL_ERROR} ? 'Error' : 'None' }"
+                valueStateText="{editUserModel>/EMAIL_ERROR}"
+                liveChange="onEditEmailInputChange" />
 
             <DatePicker id="inputEditUserBirthdayDate" placeholder="Fecha de nacimiento (YYYY-MM-DD)" value="{editUserModel>/BIRTHDAYDATE}" />
 
@@ -47,7 +60,8 @@
                 selectedKey="{editUserModel>/DEPARTMENTID}"
                 selectionChange="onEditDepartmentSelected"
                 required="true"
-                placeholder="Departamento (obligatorio)">
+                placeholder="Departamento (obligatorio)"
+                visible="{= ${editDepartments>/departments}.length > 0 }">
               <core:Item key="{editDepartments>DEPARTMENTID}" text="{editDepartments>DEPARTMENTNAME}" />
             </ComboBox>
 
@@ -60,6 +74,9 @@
             </VBox>
 
             <Input id="inputEditUserFunction" placeholder="Función que ejerce"/>
+
+         
+            <Text id="editPhoneErrorText" text="{editUserModel>/PHONE_ERROR}" visible="{= !!${editUserModel>/PHONE_ERROR} }" design="Negative"/>
 
         </VBox>
 

@@ -129,6 +129,8 @@ sap.ui.define([
       }
     },
 
+
+    //carga datos al seleccionar un símbolo
     onSymbolChange: function(oEvent) {
         let sSymbol;
         const oSelectedItem = oEvent.getParameter("selectedItem");
