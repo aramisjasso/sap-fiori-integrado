@@ -19,7 +19,7 @@ sap.ui.define([
 
     // CONSTANTES
     _CONSTANTS: {
-    DEFAULT_BALANCE: 1000,
+    DEFAULT_BALANCE: 1055,
       DEFAULT_AMOUNT: 25,
       DEFAULT_SHORT_SMA: 50,
       DEFAULT_LONG_SMA: 200
@@ -30,6 +30,7 @@ sap.ui.define([
       this._setDefaultDates();
       this._loadI18nTexts();
       this._setupViewDelegates();
+      this._initializeTableColumns();
     },
 
     /**
@@ -60,7 +61,7 @@ sap.ui.define([
 
       // Modelo de análisis de estrategia
       this.getView().setModel(new JSONModel({
-        balance: sessionStorage.getItem("CAPITAL"),
+        balance: this._CONSTANTS.DEFAULT_BALANCE ,
         amount: this._CONSTANTS.DEFAULT_AMOUNT,
         strategyKey: "",
         // Parámetros para MACrossover
@@ -137,6 +138,17 @@ sap.ui.define([
       } catch (error) {
         console.error("Error al cargar ResourceBundle:", error);
       }
+    },
+
+    _initializeTableColumns: function() {
+        const oTable = this.byId("resultsTable");
+        if (!oTable) return;
+
+        const aColumns = oTable.getColumns();
+        // Mostrar solo las primeras 6 columnas al inicio
+        aColumns.forEach((column, index) => {
+            column.setVisible(index < 6);
+        });
     },
 
     /**
@@ -296,12 +308,72 @@ sap.ui.define([
     onStrategyChange: function(oEvent) {
         var oStrategyAnalysisModel = this.getView().getModel("strategyAnalysisModel");
         var sSelectedKey = oEvent.getParameter("selectedItem").getKey();
-        oStrategyAnalysisModel.setProperty(
-          "/controlsVisible",
-          !!sSelectedKey
-        );
-        // Update strategyKey in the model
+        const oTable = this.byId("resultsTable");
+        
+        // Update visibility control
+        oStrategyAnalysisModel.setProperty("/controlsVisible", !!sSelectedKey);
         oStrategyAnalysisModel.setProperty("/strategyKey", sSelectedKey);
+
+        // Si no hay tabla o no hay estrategia seleccionada, salir
+        if (!oTable || !sSelectedKey) return;
+
+        // Obtener todas las columnas
+        const aColumns = oTable.getColumns();
+        
+        // Mapeo de índices de columnas
+        const columnIndices = {
+            // Columnas base (siempre visibles)
+            "DATE": 0,
+            "OPEN": 1,
+            "HIGH": 2,
+            "LOW": 3,
+            "CLOSE": 4,
+            "VOLUME": 5,
+            // Indicadores (ocultos por defecto)
+            "SHORT_MA": 6,
+            "LONG_MA": 7,
+            "RSI": 8,
+            "SMA": 9,
+            "MA": 10,
+            "ATR": 11,
+            "ADX": 12,
+            "SIGNALS": 13,
+            "RULES": 14,
+            "SHARES": 15
+        };
+
+        // Primero, ocultar todas las columnas excepto las 6 primeras
+        aColumns.forEach((column, index) => {
+            column.setVisible(index < 6);
+        });
+
+        // Mostrar solo los indicadores necesarios según la estrategia
+        if (sSelectedKey) {
+            switch(sSelectedKey) {
+                case "MACrossover":
+                    aColumns[columnIndices.SHORT_MA].setVisible(true);
+                    aColumns[columnIndices.LONG_MA].setVisible(true);
+                    break;
+                case "Reversión Simple":
+                    aColumns[columnIndices.RSI].setVisible(true);
+                    aColumns[columnIndices.SMA].setVisible(true);
+                    break;
+                case "Supertrend":
+                    aColumns[columnIndices.MA].setVisible(true);
+                    aColumns[columnIndices.ATR].setVisible(true);
+                    break;
+                case "Momentum":
+                    aColumns[columnIndices.SHORT_MA].setVisible(true);
+                    aColumns[columnIndices.LONG_MA].setVisible(true);
+                    aColumns[columnIndices.RSI].setVisible(true);
+                    aColumns[columnIndices.ADX].setVisible(true);
+                    break;
+            }
+            // Mostrar columnas de señales cuando hay estrategia seleccionada
+            aColumns[columnIndices.SIGNALS].setVisible(true);
+            aColumns[columnIndices.RULES].setVisible(true);
+            aColumns[columnIndices.SHARES].setVisible(true);
+        }
     },
 
     /**
@@ -539,41 +611,39 @@ sap.ui.define([
      * @param {sap.ui.model.json.JSONModel} oResultModel
      */
     _handleAnalysisResponse: function(data, oStrategyModel, oResultModel) {
+        const INITIAL_BALANCE = 1055.00;
         
-        // Actualizar modelo de resultados
         oResultModel.setData({
             hasResults: true,
-            chart_data: this._prepareTableData(
-                data.CHART_DATA || [],
-                data.SIGNALS || []
-            ),
+            simulationNumber: 3, // Siempre será la simulación 1
+            initialGeneralBalance: INITIAL_BALANCE,
+            initialSimulationBalance: parseFloat(data.SUMMARY?.FINAL_BALANCE) || 0,
+            finalSimulationBalance: parseFloat(data.SUMMARY?.FINAL_BALANCE) || 0,
+            initialShares: 1,
+            initialSharesValue: 1,
+            initialTotalBalance: parseFloat(data.SUMMARY?.FINAL_BALANCE) || 0,
+            finalShares: Math.floor(parseFloat(data.SUMMARY?.FINAL_SHARES) || 0),
+            finalSharesValue: parseFloat(data.SUMMARY?.FINAL_BALANCE) || 0,
+            finalTotalBalance: parseFloat(data.SUMMARY?.FINAL_BALANCE) || 0,
+            totalGeneralBalance: INITIAL_BALANCE + parseFloat(data.SUMMARY?.REAL_PROFIT) || 0,
+            simulationProfit: parseFloat(data.SUMMARY?.REAL_PROFIT) || 0,
+            profitPercentage: parseFloat(data.SUMMARY?.PERCENTAGE_RETURN) || 0,
+            chart_data: this._prepareTableData(data.CHART_DATA || [], data.SIGNALS || []),
             signals: data.SIGNALS || [],
-            result: data.SUMMARY?.REAL_PROFIT || 0,
             strategy: data.STRATEGY,
-            symbol: data.SYMBOL,
-            startDate: oStrategyModel.getProperty("/startDate"),
-            endDate: oStrategyModel.getProperty("/endDate"),
-            TOTAL_BOUGHT_UNITS: data.SUMMARY?.TOTAL_BOUGHT_UNITS || 0,
-            TOTAL_SOLD_UNITS: data.SUMMARY?.TOTAL_SOLD_UNITS || 0,
-            REMAINING_UNITS: data.SUMMARY?.REMAINING_UNITS || 0,
-            FINAL_CASH: data.SUMMARY?.FINAL_CASH || 0,
-            FINAL_VALUE: data.SUMMARY?.FINAL_VALUE || 0,
-            FINAL_BALANCE: data.SUMMARY?.FINAL_BALANCE || 0,
-            REAL_PROFIT: data.SUMMARY?.REAL_PROFIT || 0,
-            PERCENTAGE_RETURN: data.SUMMARY?.PERCENTAGE_RETURN || 0
+            symbol: data.SYMBOL
         });
 
         // Actualizar balance
-        var currentBalance = parseFloat(oStrategyModel.getProperty("/balance")) || 0;
-        var gainPerShare = parseFloat(oResultModel.getProperty("/REAL_PROFIT")) || 0;
-        var totalBalance = currentBalance + gainPerShare;
+        const gainPerShare = parseFloat(data.SUMMARY?.REAL_PROFIT) || 0;
+        const newBalance = INITIAL_BALANCE + gainPerShare;
         
         // Actualizar balance en modelo y sessionStorage
-        oStrategyModel.setProperty("/balance", totalBalance);
-        sessionStorage.setItem("CAPITAL", totalBalance.toString());
+        oStrategyModel.setProperty("/balance", newBalance);
+        sessionStorage.setItem("CAPITAL", newBalance.toString());
         
         // Mostrar mensaje con formato de número
-        MessageToast.show(`Se añadieron ${this.formatNumber(gainPerShare)} a tu balance.`);
+        MessageToast.show(`Se añadieron ${this.formatNumber(gainPerShare)} USD a tu balance.`);
     },
 
     /**
@@ -624,7 +694,7 @@ sap.ui.define([
 
             // Actualizar el acumulado de acciones (usando el nuevo formato de señales)
             if (oSignal) {
-                currentShares = oSignal.SHARES || 0;
+                currentShares = Math.floor(oSignal.SHARES || 0);
             }
             
             return {
@@ -644,8 +714,8 @@ sap.ui.define([
                 ADX: indicators.adx,
                 INDICATORS: indicatorParts.length > 0 ? indicatorParts.join(", ") : "-",
                 SIGNALS: oSignal?.TYPE?.toUpperCase() || "-", // "BUY", "SELL" o vacío
-                RULES: oSignal?.REASONING || "-",
-                SHARES: currentShares.toFixed(4),  // Muestra el acumulado diario
+                RULES: oSignal ? `${oSignal.REASONING} at $${this.formatNumber(oItem.CLOSE)}` : "-",
+                SHARES: Math.floor(currentShares),  // Muestra el acumulado diario
                 BUY_SIGNAL: oSignal?.TYPE?.toLowerCase() === 'buy' ? oItem.CLOSE : null,
                 SELL_SIGNAL: oSignal?.TYPE?.toLowerCase() === 'sell' ? oItem.CLOSE : null,
             };
@@ -988,7 +1058,7 @@ sap.ui.define([
      * Elimina una o varias simulaciones seleccionadas llamando a la API.
      */
     onDeleteSelected: function() {
-        const oTable = sap.ui.getCore().byId("historyTable"); // Mejor usa this.byId() en lugar de sap.ui.getCore().byId()
+        const oTable = sap.ui.getCore().byId("historyTable");
         const aSelectedItems = oTable.getSelectedItems();
         
         if (!aSelectedItems.length) {
@@ -1007,35 +1077,47 @@ sap.ui.define([
                     try {
                         sap.ui.core.BusyIndicator.show(0);
                         
-                        // Obtener todos los IDs seleccionados
+                        // Depurar los IDs seleccionados
                         const aSimulationIds = aSelectedItems.map(oItem => {
-                            return oItem.getBindingContext("historyModel").getObject().details.SIMULATIONID;
+                            const oData = oItem.getBindingContext("historyModel").getObject();
+                            console.log("Datos de simulación:", oData); // Para depuración
+                            
+                            // Verifica la estructura correcta
+                            if (!oData.details || !oData.details.SIMULATIONID) {
+                                console.error("Estructura inválida para:", oData);
+                                throw new Error("ID de simulación no encontrado");
+                            }
+                            
+                            return oData.details.SIMULATIONID;
                         });
 
-                        // Llamar al endpoint de delete múltiple
+                        console.log("IDs a eliminar:", aSimulationIds); // Para depuración
+
+                        // Verificar que tenemos IDs válidos
+                        if (!aSimulationIds.length || aSimulationIds.includes(undefined)) {
+                            throw new Error("No se pudieron obtener los IDs de las simulaciones");
+                        }
+
                         const response = await fetch("http://localhost:3033/api/inv/deleteSimulations", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
-                                userID: "ARAMIS",  // Hardcodeado como en tu ejemplo, pero idealmente usa el user real
+                                userID: sessionStorage.getItem("USERID") || "ARAMIS", // Usar ID de sesión si existe
                                 simulationIDs: aSimulationIds
                             })
                         });
 
+                        // Verificar respuesta del servidor
+                        const responseData = await response.json();
+                        
                         if (!response.ok) {
-                            const errorData = await response.json();
-                            throw new Error(errorData.message || "Error al eliminar las simulaciones");
+                            throw new Error(responseData.message || "Error al eliminar las simulaciones");
                         }
 
                         // Recargar datos y actualizar UI
                         await this._loadHistoryData();
                         
-                        // Mensaje de éxito personalizado
-                        const sSuccessMessage = aSimulationIds.length === 1
-                            ? "Simulación eliminada correctamente"
-                            : `${aSimulationIds.length} simulaciones eliminadas correctamente`;
-                        
-                        MessageToast.show(sSuccessMessage);
+                        MessageToast.show(responseData.message || "Simulaciones eliminadas correctamente");
 
                         // Resetear modo de eliminación
                         const oModel = this.getView().getModel("historyModel");
@@ -1043,7 +1125,7 @@ sap.ui.define([
                         oModel.setProperty("/selectedCount", 0);
 
                     } catch (error) {
-                        console.error("Error detallado:", error);
+                        console.error("Error completo:", error);
                         MessageBox.error(error.message || "Error al eliminar las simulaciones");
                     } finally {
                         sap.ui.core.BusyIndicator.hide();
@@ -1356,6 +1438,153 @@ sap.ui.define([
         onFilterChange: function() {
         this._applyFilters();
     },
+
+    onTableSearch: function(oEvent) {
+        // Handle both search and liveChange events
+        const sQuery = (oEvent.getParameter("query") || oEvent.getParameter("newValue") || "").toLowerCase();
+        const oTable = this.byId("resultsTable");
+        
+        if (!oTable) {
+            console.error("Table not found");
+            return;
+        }
+        
+        const oBinding = oTable.getBinding("items");
+        if (!oBinding) {
+            console.error("No binding found for table");
+            return;
+        }
+
+        // If no query, remove all filters
+        if (!sQuery) {
+            oBinding.filter([]);
+            return;
+        }
+
+        // Define searchable columns
+        const aSearchFields = [
+            "DATE",
+            "OPEN",
+            "HIGH",
+            "LOW",
+            "CLOSE",
+            "VOLUME",
+            "INDICATORS",
+            "SIGNALS",
+            "RULES",
+            "SHARES"
+        ];
+
+        // Create filters for each field
+        const aFilters = aSearchFields.map(sField => 
+            new Filter({
+                path: sField,
+                test: function(value) {
+                    if (value === null || value === undefined) return false;
+                    return value.toString().toLowerCase().includes(sQuery);
+                }
+            })
+        );
+
+        // Apply filters with OR condition
+        oBinding.filter(new Filter({
+            filters: aFilters,
+            and: false
+        }));
+    },
+
+    //SELECTRO DE COLUMNAS
+openColumnCustomizer: function(oEvent) {
+    if (!this._oColumnCustomizer) {
+        this._oColumnCustomizer = sap.ui.xmlfragment(
+            "com.invertions.sapfiorimodinv.view.investments.fragments.ColumnCustomizer",
+            this
+        );
+        this.getView().addDependent(this._oColumnCustomizer);
+    }
+    
+    // Sincronizar estado de visibilidad con la tabla actual
+    const oTable = this.byId("resultsTable");
+    const oList = sap.ui.getCore().byId("columnsList");
+    const aColumns = oTable.getColumns();
+    const aItems = oList.getItems();
+    
+    // Actualizar selección basada en visibilidad actual de columnas
+    aItems.forEach((oItem, index) => {
+        if (index < aColumns.length) {
+            oItem.setSelected(aColumns[index].getVisible());
+        }
+    });
+    
+    // Mostrar/ocultar items según la estrategia seleccionada
+    const sStrategyKey = this.getView().getModel("strategyAnalysisModel").getProperty("/strategyKey");
+    
+    // Ocultar todos los indicadores técnicos primero
+    aItems.forEach(item => {
+        const sKey = item.getCustomData()[0].getValue();
+        if (["SHORT_MA", "LONG_MA", "RSI", "SMA", "MA", "ATR", "ADX"].includes(sKey)) {
+            item.setVisible(false);
+        }
+    });
+    
+    // Mostrar solo los indicadores relevantes para la estrategia
+    if (sStrategyKey) {
+        let indicatorsToShow = [];
+        switch(sStrategyKey) {
+            case "MACrossover":
+                indicatorsToShow = ["SHORT_MA", "LONG_MA"];
+                break;
+            case "Reversión Simple":
+                indicatorsToShow = ["RSI", "SMA"];
+                break;
+            case "Supertrend":
+                indicatorsToShow = ["MA", "ATR"];
+                break;
+            case "Momentum":
+                indicatorsToShow = ["SHORT_MA", "LONG_MA", "RSI", "ADX"];
+                break;
+        }
+        this._showIndicatorItems(indicatorsToShow);
+    }
+    
+    this._oColumnCustomizer.openBy(oEvent.getSource());
+},
+
+_showIndicatorItems: function(aKeys) {
+    const oList = sap.ui.getCore().byId("columnsList");
+    if (!oList) return;
+    
+    oList.getItems().forEach(item => {
+        const sKey = item.getCustomData()[0].getValue();
+        if (aKeys.includes(sKey)) {
+            item.setVisible(true);
+        }
+    });
+},
+
+onApplyColumnVisibility: function() {
+    const oList = sap.ui.getCore().byId("columnsList");
+    const oTable = this.byId("resultsTable");
+    const aColumns = oTable.getColumns();
+    
+    oList.getItems().forEach((oItem, index) => {
+        if (index < aColumns.length) {
+            aColumns[index].setVisible(oItem.getSelected());
+        }
+    });
+    
+    this._oColumnCustomizer.close();
+},
+
+onCloseColumnCustomizer: function() {
+    if (this._oColumnCustomizer) {
+        this._oColumnCustomizer.close();
+    }
+},
+
+
+
+
 
     onExit: function() {
         if (this._oHistoryPopover) {

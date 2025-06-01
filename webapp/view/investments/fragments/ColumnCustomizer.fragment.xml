@@ -1,0 +1,103 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+    <Popover
+        id="columnCustomizerPopover"
+        title="Personalizar Columnas"
+        placement="Bottom"
+        contentWidth="300px">
+        <List
+            id="columnsList"
+            mode="MultiSelect"
+            includeItemInSelection="true"
+            selectionChange=".onColumnVisibilityChange">
+            <StandardListItem title="Fecha" selected="true" visible="true">
+                <customData>
+                    <core:CustomData key="columnKey" value="DATE"/>
+                </customData>
+            </StandardListItem>
+            <StandardListItem title="Apertura" selected="true" visible="true">
+                <customData>
+                    <core:CustomData key="columnKey" value="OPEN"/>
+                </customData>
+            </StandardListItem>
+            <StandardListItem title="Máximo" selected="true" visible="true">
+                <customData>
+                    <core:CustomData key="columnKey" value="HIGH"/>
+                </customData>
+            </StandardListItem>
+            <StandardListItem title="Mínimo" selected="true" visible="true">
+                <customData>
+                    <core:CustomData key="columnKey" value="LOW"/>
+                </customData>
+            </StandardListItem>
+            <StandardListItem title="Cierre" selected="true" visible="true">
+                <customData>
+                    <core:CustomData key="columnKey" value="CLOSE"/>
+                </customData>
+            </StandardListItem>
+            <StandardListItem title="Volumen" selected="true" visible="true">
+                <customData>
+                    <core:CustomData key="columnKey" value="VOLUME"/>
+                </customData>
+            </StandardListItem>
+            <StandardListItem title="Media Móvil Corta" selected="true" visible="false">
+                <customData>
+                    <core:CustomData key="columnKey" value="SHORT_MA"/>
+                </customData>
+            </StandardListItem>
+            <StandardListItem title="Media Móvil Larga" selected="true" visible="false">
+                <customData>
+                    <core:CustomData key="columnKey" value="LONG_MA"/>
+                </customData>
+            </StandardListItem>
+            <StandardListItem title="RSI" selected="true" visible="false">
+                <customData>
+                    <core:CustomData key="columnKey" value="RSI"/>
+                </customData>
+            </StandardListItem>
+            <StandardListItem title="SMA" selected="true" visible="false">
+                <customData>
+                    <core:CustomData key="columnKey" value="SMA"/>
+                </customData>
+            </StandardListItem>
+            <StandardListItem title="MA" selected="true" visible="false">
+                <customData>
+                    <core:CustomData key="columnKey" value="MA"/>
+                </customData>
+            </StandardListItem>
+            <StandardListItem title="ATR" selected="true" visible="false">
+                <customData>
+                    <core:CustomData key="columnKey" value="ATR"/>
+                </customData>
+            </StandardListItem>
+            <StandardListItem title="ADX" selected="true" visible="false">
+                <customData>
+                    <core:CustomData key="columnKey" value="ADX"/>
+                </customData>
+            </StandardListItem>
+            <StandardListItem title="Señales" selected="true" visible="true">
+                <customData>
+                    <core:CustomData key="columnKey" value="SIGNALS"/>
+                </customData>
+            </StandardListItem>
+            <StandardListItem title="Reglas" selected="true" visible="true">
+                <customData>
+                    <core:CustomData key="columnKey" value="RULES"/>
+                </customData>
+            </StandardListItem>
+            <StandardListItem title="Acciones" selected="true" visible="true">
+                <customData>
+                    <core:CustomData key="columnKey" value="SHARES"/>
+                </customData>
+            </StandardListItem>
+        </List>
+        <footer>
+            <Toolbar>
+                <ToolbarSpacer/>
+                <Button text="Aplicar" type="Emphasized" press=".onApplyColumnVisibility"/>
+                <Button text="Cancelar" press=".onCloseColumnCustomizer"/>
+            </Toolbar>
+        </footer>
+    </Popover>
+</core:FragmentDefinition>
