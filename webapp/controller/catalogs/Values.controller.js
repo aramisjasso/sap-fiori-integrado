@@ -531,6 +531,7 @@ sap.ui.define(
                       var filteredValues = currentValues.filter(
                         (item) => item.VALUEID !== oFormData.VALUEID
                       );
+                      
                       oValuesModel.setProperty("/values", filteredValues);
 
                       this._cleanModels();
