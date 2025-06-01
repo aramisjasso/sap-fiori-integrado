@@ -70,19 +70,29 @@
           value="{newUserModel>/EXTENSION}" />
 
       <!-- Campo existente: Número telefónico -->
-      <Input
-          id="inputUserPhoneNumber"
-          placeholder="Número telefónico (10 dígitos)"
-          value="{newUserModel>/PHONENUMBER}"
-          valueStateText="Solo números, 10 dígitos" />
+      <HBox>
+    <Input id="phoneDigit0" width="2em" maxLength="1" liveChange="onPhoneDigitChange" value="{newUserModel>/PHONE_DIGITS/0}" type="Number" />
+    <Input id="phoneDigit1" width="2em" maxLength="1" liveChange="onPhoneDigitChange" value="{newUserModel>/PHONE_DIGITS/1}" type="Number" />
+    <Input id="phoneDigit2" width="2em" maxLength="1" liveChange="onPhoneDigitChange" value="{newUserModel>/PHONE_DIGITS/2}" type="Number" />
+    <Input id="phoneDigit3" width="2em" maxLength="1" liveChange="onPhoneDigitChange" value="{newUserModel>/PHONE_DIGITS/3}" type="Number" />
+    <Input id="phoneDigit4" width="2em" maxLength="1" liveChange="onPhoneDigitChange" value="{newUserModel>/PHONE_DIGITS/4}" type="Number" />
+    <Input id="phoneDigit5" width="2em" maxLength="1" liveChange="onPhoneDigitChange" value="{newUserModel>/PHONE_DIGITS/5}" type="Number" />
+    <Input id="phoneDigit6" width="2em" maxLength="1" liveChange="onPhoneDigitChange" value="{newUserModel>/PHONE_DIGITS/6}" type="Number" />
+    <Input id="phoneDigit7" width="2em" maxLength="1" liveChange="onPhoneDigitChange" value="{newUserModel>/PHONE_DIGITS/7}" type="Number" />
+    <Input id="phoneDigit8" width="2em" maxLength="1" liveChange="onPhoneDigitChange" value="{newUserModel>/PHONE_DIGITS/8}" type="Number" />
+    <Input id="phoneDigit9" width="2em" maxLength="1" liveChange="onPhoneDigitChange" value="{newUserModel>/PHONE_DIGITS/9}" type="Number" />
+</HBox>
+<Text id="phoneErrorText" text="{newUserModel>/PHONE_ERROR}" visible="{= !!${newUserModel>/PHONE_ERROR} }" design="Negative"/>
 
       <!-- Campo existente: Correo Electrónico -->
       <Input
           id="inputUserEmail"
           placeholder="Correo Electrónico (ejemplo@dominio.com, obligatorio)"
           value="{newUserModel>/EMAIL}"
+          liveChange="onEmailInputChange"
           required="true"
-          valueStateText="Formato: ejemplo@dominio.com" />
+          valueState="{= ${newUserModel>/EMAIL_ERROR} ? 'Error' : 'None' }"
+          valueStateText="{newUserModel>/EMAIL_ERROR}" />
 
       <!-- Campo existente: Fecha de nacimiento -->
       <DatePicker
@@ -103,26 +113,38 @@
       <ComboBox
           id="comboBoxCompanies"
           items="{companies>/companies}"
-          selectedKey="{newUserModel>/COMPANYID}"
           selectionChange="onCompanySelected"
           required="true"
-          placeholder="Compañía (obligatorio)">
+          placeholder="Selecciona una empresa">
         <core:Item
-            key="{companies>COMPANYID}"      
-            text="{companies>COMPANYNAME}" />   
+            key="{companies>COMPANYID}"
+            text="{companies>VALUE}" />
       </ComboBox>
 
-      <!-- ComboBox de departamentos -->
+      <!-- ComboBox de CEDIS (inicialmente deshabilitado) -->
       <ComboBox
           id="comboBoxCedis"
-          items="{departments>/departments}"
-          selectedKey="{newUserModel>/DEPARTMENTID}"
-          selectionChange="onDepartmentSelected"
+          items="{cedis>/cedis}"
+          selectionChange="onCediSelected"
+          enabled="false"
           required="true"
-          placeholder="Departamento (obligatorio)">
+          placeholder="Selecciona un CEDI">
         <core:Item
-            key="{departments>DEPARTMENTID}"
-            text="{departments>DEPARTMENTNAME}" />
+            key="{cedis>CEDIID}"
+            text="{cedis>CEDIIDLABEL}" />
+      </ComboBox>
+
+      <!-- ComboBox de Departamentos -->
+      <ComboBox
+          id="comboBoxDepartments"
+          items="{departments>/departments}"
+          enabled="false"
+          required="true"
+          selectionChange="onDepartmentSelected"
+          placeholder="Selecciona un departamento">
+        <core:Item
+            key="{departments>_id}"
+            text="{departments>VALUE}" />
       </ComboBox>
 
       <!-- Combobox: Roles -->

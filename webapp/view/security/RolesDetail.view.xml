@@ -30,7 +30,7 @@
     templateShareable: false
   }">
 
-  <m:toolbar>
+  <m:Toolbar>
     <m:Title text="Procesos y Privilegios" />
     <m:ToolbarSpacer />
     <m:Button
@@ -39,7 +39,7 @@
       tooltip="Catálogos"
       type="Emphasized"
       press=".onCatalogsPress" />
-  </m:toolbar>
+  </m:Toolbar>
 
         <tl:Table
           id="processesTable"
@@ -102,7 +102,7 @@
     templateShareable: false
   }">
 
-  <m:toolbar>
+  <m:Toolbar>
     <m:Title text="Usuarios con este Rol" />
     <m:ToolbarSpacer />
     <m:Button
@@ -111,7 +111,7 @@
       tooltip="Usuarios"
       type="Emphasized"
       press=".onUsersPress" />
-  </m:toolbar>
+  </m:Toolbar>
 
         <tl:Table
           id="usersTable"
