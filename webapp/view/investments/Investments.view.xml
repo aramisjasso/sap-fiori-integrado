@@ -76,112 +76,112 @@
                                     </headerToolbar>
                                     <core:Fragment fragmentName="com.invertions.sapfiorimodinv.view.investments.fragments.ColumnCustomizer" type="XML"/>
                                     <columns>
-        <Column>
-            <Text text="Fecha"/>
-        </Column>
-        <Column>
-            <Text text="Apertura"/>
-        </Column>
-        <Column>
-            <Text text="Máximo"/>
-        </Column>
-        <Column>
-            <Text text="Mínimo"/>
-        </Column>
-        <Column>
-            <Text text="Cierre"/>
-        </Column>
-        <Column>
-            <Text text="Volumen"/>
-        </Column>
-        <!-- Indicadores separados -->
-        <Column>
-            <Text text="MA Corta"/>
-        </Column>
-        <Column>
-            <Text text="MA Larga"/>
-        </Column>
-        <Column>
-            <Text text="RSI"/>
-        </Column>
-        <Column>
-            <Text text="SMA"/>
-        </Column>
-        <Column>
-            <Text text="MA"/>
-        </Column>
-        <Column>
-            <Text text="ATR"/>
-        </Column>
-        <Column>
-            <Text text="ADX"/>
-        </Column>
-        <Column>
-            <Text text="Señal"/>
-        </Column>
-        <Column>
-            <Text text="Regla"/>
-        </Column>
-        <Column>
-            <Text text="Acciones"/>
-        </Column>
-    </columns>
-    <items>
-        <ColumnListItem>
-            <cells>
-                <Text text="{strategyResultModel>DATE}"/>
-                <Text text="{
-                    path: 'strategyResultModel>OPEN',
-                    formatter: '.formatNumber'
-                }"/>
-                <Text text="{
-                    path: 'strategyResultModel>HIGH',
-                    formatter: '.formatNumber'
-                }"/>
-                <Text text="{
-                    path: 'strategyResultModel>LOW',
-                    formatter: '.formatNumber'
-                }"/>
-                <Text text="{
-                    path: 'strategyResultModel>CLOSE',
-                    formatter: '.formatNumber'
-                }"/>
-                <Text text="{strategyResultModel>VOLUME}"/>
-                <!-- Indicadores -->
-                <Text text="{
-                    path: 'strategyResultModel>SHORT_MA',
-                    formatter: '.formatNumber'
-                }"/>
-                <Text text="{
-                    path: 'strategyResultModel>LONG_MA',
-                    formatter: '.formatNumber'
-                }"/>
-                <Text text="{
-                    path: 'strategyResultModel>RSI',
-                    formatter: '.formatNumber'
-                }"/>
-                <Text text="{
-                    path: 'strategyResultModel>SMA',
-                    formatter: '.formatNumber'
-                }"/>
-                <Text text="{
-                    path: 'strategyResultModel>MA',
-                    formatter: '.formatNumber'
-                }"/>
-                <Text text="{
-                    path: 'strategyResultModel>ATR',
-                    formatter: '.formatNumber'
-                }"/>
-                <Text text="{
-                    path: 'strategyResultModel>ADX',
-                    formatter: '.formatNumber'
-                }"/>
-                <Text text="{strategyResultModel>SIGNALS}"/>
-                <Text text="{strategyResultModel>RULES}"/>
-                <Text text="{strategyResultModel>SHARES}"/>
-            </cells>
-        </ColumnListItem>
-    </items>
+                                        <Column>
+                                            <Text text="Fecha"/>
+                                        </Column>
+                                        <Column>
+                                            <Text text="Apertura"/>
+                                        </Column>
+                                        <Column>
+                                            <Text text="Máximo"/>
+                                        </Column>
+                                        <Column>
+                                            <Text text="Mínimo"/>
+                                        </Column>
+                                        <Column>
+                                            <Text text="Cierre"/>
+                                        </Column>
+                                        <Column>
+                                            <Text text="Volumen"/>
+                                        </Column>
+                                        <!-- Indicadores separados -->
+                                        <Column>
+                                            <Text text="MA Corta"/>
+                                        </Column>
+                                        <Column>
+                                            <Text text="MA Larga"/>
+                                        </Column>
+                                        <Column>
+                                            <Text text="RSI"/>
+                                        </Column>
+                                        <Column>
+                                            <Text text="SMA"/>
+                                        </Column>
+                                        <Column>
+                                            <Text text="MA"/>
+                                        </Column>
+                                        <Column>
+                                            <Text text="ATR"/>
+                                        </Column>
+                                        <Column>
+                                            <Text text="ADX"/>
+                                        </Column>
+                                        <Column>
+                                            <Text text="Señal"/>
+                                        </Column>
+                                        <Column>
+                                            <Text text="Regla"/>
+                                        </Column>
+                                        <Column>
+                                            <Text text="Acciones"/>
+                                        </Column>
+                                    </columns>
+                                    <items>
+                                        <ColumnListItem>
+                                            <cells>
+                                                <Text text="{strategyResultModel>DATE}"/>
+                                                <Text text="{
+                                                    path: 'strategyResultModel>OPEN',
+                                                    formatter: '.formatNumber'
+                                                }"/>
+                                                <Text text="{
+                                                    path: 'strategyResultModel>HIGH',
+                                                    formatter: '.formatNumber'
+                                                }"/>
+                                                <Text text="{
+                                                    path: 'strategyResultModel>LOW',
+                                                    formatter: '.formatNumber'
+                                                }"/>
+                                                <Text text="{
+                                                    path: 'strategyResultModel>CLOSE',
+                                                    formatter: '.formatNumber'
+                                                }"/>
+                                                <Text text="{strategyResultModel>VOLUME}"/>
+                                                <!-- Indicadores -->
+                                                <Text text="{
+                                                    path: 'strategyResultModel>SHORT_MA',
+                                                    formatter: '.formatNumber'
+                                                }"/>
+                                                <Text text="{
+                                                    path: 'strategyResultModel>LONG_MA',
+                                                    formatter: '.formatNumber'
+                                                }"/>
+                                                <Text text="{
+                                                    path: 'strategyResultModel>RSI',
+                                                    formatter: '.formatNumber'
+                                                }"/>
+                                                <Text text="{
+                                                    path: 'strategyResultModel>SMA',
+                                                    formatter: '.formatNumber'
+                                                }"/>
+                                                <Text text="{
+                                                    path: 'strategyResultModel>MA',
+                                                    formatter: '.formatNumber'
+                                                }"/>
+                                                <Text text="{
+                                                    path: 'strategyResultModel>ATR',
+                                                    formatter: '.formatNumber'
+                                                }"/>
+                                                <Text text="{
+                                                    path: 'strategyResultModel>ADX',
+                                                    formatter: '.formatNumber'
+                                                }"/>
+                                                <Text text="{strategyResultModel>SIGNALS}"/>
+                                                <Text text="{strategyResultModel>RULES}"/>
+                                                <Text text="{strategyResultModel>SHARES}"/>
+                                            </cells>
+                                        </ColumnListItem>
+                                    </items>
                                 </Table>
                             </ScrollContainer>
                         </VBox>
@@ -288,13 +288,13 @@
                                         type="XML"/>
                             
                             <!-- Results Panel -->
-                            <core:Fragment 
-                                fragmentName="com.invertions.sapfiorimodinv.view.investments.fragments.StrategyResultPanel" 
-                                type="XML"
-                                class="sapUiSmallMarginTop"/>
                         </VBox>
                     </FlexBox>
                 <!-- Strategy Results -->
+                <core:Fragment 
+                                fragmentName="com.invertions.sapfiorimodinv.view.investments.fragments.StrategyResultPanel" 
+                                type="XML"
+                                class="sapUiSmallMarginTop"/>
                 </VBox>
             </VBox>
         </content>
