@@ -18,7 +18,8 @@
                 required="true"
                 valueStateText="Obligatorio" />
             
-                   <HBox>
+            <Label text="Número telefónico (10 dígitos)" labelFor="editPhoneDigit0"/>
+            <HBox>
                 <Input id="editPhoneDigit0" width="2em" maxLength="1" liveChange="onEditPhoneDigitChange" value="{editUserModel>/PHONE_DIGITS/0}" type="Number" />
                 <Input id="editPhoneDigit1" width="2em" maxLength="1" liveChange="onEditPhoneDigitChange" value="{editUserModel>/PHONE_DIGITS/1}" type="Number" />
                 <Input id="editPhoneDigit2" width="2em" maxLength="1" liveChange="onEditPhoneDigitChange" value="{editUserModel>/PHONE_DIGITS/2}" type="Number" />
@@ -42,27 +43,45 @@
 
             <DatePicker id="inputEditUserBirthdayDate" placeholder="Fecha de nacimiento (YYYY-MM-DD)" value="{editUserModel>/BIRTHDAYDATE}" />
 
-            <!-- ComboBox de compañías en EditUserDialog.fragment.xml -->
+            <!-- ComboBox de compañías -->
             <ComboBox
                 id="comboBoxEditCompanies"
                 items="{editCompanies>/companies}"
-                selectedKey="{editUserModel>/COMPANYNAME}"
                 selectionChange="onEditCompanySelected"
                 required="true"
-                placeholder="Compañía (obligatorio)">
-              <core:Item key="{editCompanies>COMPANYNAME}" text="{editCompanies>COMPANYALIAS}" />
+                placeholder="Selecciona una empresa"
+                selectedKey="{editUserModel>/COMPANYID}">
+              <core:Item
+                  key="{editCompanies>COMPANYID}"
+                  text="{editCompanies>VALUE}" />
             </ComboBox>
             
-            <!-- ComboBox de departamentos en EditUserDialog.fragment.xml -->
+            <!-- ComboBox de CEDIS (habilitado solo si hay datos) -->
             <ComboBox
                 id="comboBoxEditCedis"
-                items="{editDepartments>/departments}"
-                selectedKey="{editUserModel>/DEPARTMENTID}"
-                selectionChange="onEditDepartmentSelected"
+                items="{editCedis>/cedis}"
+                selectionChange="onEditCediSelected"
+                enabled="{= ${editCedis>/cedis}.length > 0 }"
                 required="true"
-                placeholder="Departamento (obligatorio)"
-                visible="{= ${editDepartments>/departments}.length > 0 }">
-              <core:Item key="{editDepartments>DEPARTMENTID}" text="{editDepartments>DEPARTMENTNAME}" />
+                placeholder="Selecciona un CEDI"
+                selectedKey="{editUserModel>/CEDIID}">
+              <core:Item
+                  key="{editCedis>CEDIID}"
+                  text="{editCedis>CEDIIDLABEL}" />
+            </ComboBox>
+
+            <!-- ComboBox de Departamentos (habilitado solo si hay datos) -->
+            <ComboBox
+                id="comboBoxEditDepartments"
+                items="{editDepartments>/departments}"
+                selectionChange="onEditDepartmentSelected"
+                enabled="{= ${editDepartments>/departments}.length > 0 }"
+                required="true"
+                placeholder="Selecciona un departamento"
+                selectedKey="{editUserModel>/DEPARTMENTID}">
+              <core:Item
+                  key="{editDepartments>DEPARTMENTID}"
+                  text="{editDepartments>DEPARTMENTNAME}" />
             </ComboBox>
 
             <ComboBox id="comboBoxEditRoles" items="{roles>/roles}" selectionChange="onRoleSelected" placeholder="Selecciona un Rol">

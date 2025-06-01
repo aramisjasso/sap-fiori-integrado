@@ -881,7 +881,8 @@ sap.ui.define([
         // ============= CARGAR COMPAÑÍAS PARA EDICIÓN =============
         loadEditCompanies: async function () {
             try {
-                const res = await fetch("http://localhost:3033/api/sec/usersroles/getAllCompanies", {
+                // Usa el endpoint que da la estructura completa
+                const res = await fetch("http://localhost:3033/api/sec/usersroles/getCompaniesWithCedisAndDepartments", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" }
                 });
@@ -889,28 +890,34 @@ sap.ui.define([
                 if (!res.ok) throw new Error("Error en la respuesta del servidor.");
 
                 const data = await res.json();
-                console.log("Respuesta cruda de getAllCompanies (edit):", data);
+                const companies = Array.isArray(data.value) ? data.value : (Array.isArray(data) ? data : []);
+                const oModel = new sap.ui.model.json.JSONModel({ companies });
+                this.getView().setModel(oModel, "editCompanies");
 
-                const aAllCompanies = Array.isArray(data.value) ? data.value : (Array.isArray(data) ? data : []);
-                const aFilteredCompanies = aAllCompanies.filter(
-                    (company) => company.DETAIL_ROW?.ACTIVED && !company.DETAIL_ROW?.DELETED
-                );
+                // Si ya hay compañía seleccionada, llena CEDIS y departamentos
+                var oEditUserModel = this.getView().getModel("editUserModel");
+                var companyId = oEditUserModel.getProperty("/COMPANYID");
+                if (companyId) {
+                    var selectedCompany = companies.find(c => c.COMPANYID == companyId);
+                    if (selectedCompany) {
+                        // Llenar modelo de CEDIS
+                        var cedis = selectedCompany.CEDIS || [];
+                        var oCedisModel = new sap.ui.model.json.JSONModel({ cedis: cedis });
+                        this.getView().setModel(oCedisModel, "editCedis");
 
-                const companiesFormatted = aFilteredCompanies.map((company) => ({
-                    COMPANYID: company.COMPANYID, // Número
-                    COMPANYNAME: "IdCompanies-" + company.VALUEID, // Identificador compuesto
-                    COMPANYALIAS: company.VALUE, // Nombre visible
-                    RAW: company
-                }));
-
-                const oModel = this.getView().getModel("editCompanies") || new sap.ui.model.json.JSONModel();
-                oModel.setData({ companies: companiesFormatted, originalData: aFilteredCompanies });
-                if (!this.getView().getModel("editCompanies")) {
-                    this.getView().setModel(oModel, "editCompanies");
+                        // Si ya hay CEDIID seleccionado, llena departamentos
+                        var cediId = oEditUserModel.getProperty("/CEDIID");
+                        if (cediId) {
+                            var selectedCedi = cedis.find(c => c.CEDIID == cediId);
+                            if (selectedCedi) {
+                                var departments = selectedCedi.DEPARTAMENTOS || [];
+                                var oDeptosModel = new sap.ui.model.json.JSONModel({ departments: departments });
+                                this.getView().setModel(oDeptosModel, "editDepartments");
+                            }
+                        }
+                    }
                 }
             } catch (error) {
-                console.error("Error al cargar compañías (edit):", error);
-                // @ts-ignore
                 sap.m.MessageBox.error("Error al cargar compañías. Por favor, intente nuevamente.");
             }
         },
@@ -966,9 +973,7 @@ sap.ui.define([
                 // Solo muestra el error si sí había compañía seleccionada
                 if (this.getView().getModel("editUserModel").getProperty("/COMPANYNAME")) {
                     console.error("Error al cargar departamentos (edit):", error);
-                    // @ts-ignore
-                    sap.m.MessageBox.error("Error al cargar departamentos. Por favor, intente nuevamente.");
-                }
+             }
             }
         },
         // ============= FIN CARGAR DEPARTAMENTOS PARA EDICIÓN =============
@@ -976,30 +981,57 @@ sap.ui.define([
         onEditCompanySelected: function (oEvent) {
             var oComboBox = oEvent.getSource();
             var oItem = oComboBox.getSelectedItem();
+            if (!oItem) return;
+
             var oCtx = oItem.getBindingContext("editCompanies");
             var oCompany = oCtx.getObject();
 
-            var oModel = this.getView().getModel("editUserModel");
-            oModel.setProperty("/COMPANYID", oCompany.RAW.COMPANYID);
-            oModel.setProperty("/COMPANYNAME", oCompany.COMPANYNAME);
-            oModel.setProperty("/COMPANYALIAS", oCompany.RAW.VALUE);
+            var oUserModel = this.getView().getModel("editUserModel");
+            oUserModel.setProperty("/COMPANYID", oCompany.RAW.COMPANYID);
+            oUserModel.setProperty("/COMPANYNAME", oCompany.COMPANYNAME);
+            oUserModel.setProperty("/COMPANYALIAS", oCompany.RAW.VALUE);
 
             // Limpia departamento al cambiar compañía
-            oModel.setProperty("/DEPARTMENTID", "");
-            oModel.setProperty("/DEPARTMENT", "");
+            oUserModel.setProperty("/DEPARTMENTID", "");
+            oUserModel.setProperty("/DEPARTMENT", "");
 
             this.loadEditDeptos();
+        },
+
+        onEditCediSelected: function (oEvent) {
+            var oComboBox = oEvent.getSource();
+            var oItem = oComboBox.getSelectedItem();
+            if (!oItem) return;
+
+            var oCtx = oItem.getBindingContext("editCedis");
+            var oCedi = oCtx.getObject();
+
+            var oUserModel = this.getView().getModel("editUserModel");
+            oUserModel.setProperty("/CEDIID", oCedi.CEDIID);
+
+            // Limpia departamento seleccionado
+            oUserModel.setProperty("/DEPARTMENT", "");
+
+            // Llenar modelo de departamentos
+            var departments = oCedi.DEPARTAMENTOS || [];
+            var oDeptosModel = new sap.ui.model.json.JSONModel({ departments: departments });
+            this.getView().setModel(oDeptosModel, "editDepartments");
+
+            // Habilitar ComboBox de departamentos
+            this.getView().byId("comboBoxEditDepartments").setEnabled(true);
         },
 
         onEditDepartmentSelected: function (oEvent) {
             var oComboBox = oEvent.getSource();
             var oItem = oComboBox.getSelectedItem();
+            if (!oItem) return;
+
             var oCtx = oItem.getBindingContext("editDepartments");
             var oDept = oCtx.getObject();
 
-            var oModel = this.getView().getModel("editUserModel");
-            oModel.setProperty("/DEPARTMENTID", oDept.RAW.VALUEID);
-            oModel.setProperty("/DEPARTMENT", oDept.RAW.VALUE);
+            var oUserModel = this.getView().getModel("editUserModel");
+            oUserModel.setProperty("/DEPARTMENTID", oDept.DEPARTMENTID);
+            oUserModel.setProperty("/DEPARTMENT", oDept.DEPARTMENTNAME);
         },
 
         onDepartmentSelected: function (oEvent) {

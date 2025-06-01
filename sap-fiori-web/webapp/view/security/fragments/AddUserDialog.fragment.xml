@@ -70,7 +70,8 @@
           value="{newUserModel>/EXTENSION}" />
 
       <!-- Campo existente: Número telefónico -->
-      <HBox>
+      <Label text="Número telefónico (10 dígitos)" labelFor="phoneDigit0"/>
+<HBox>
     <Input id="phoneDigit0" width="2em" maxLength="1" liveChange="onPhoneDigitChange" value="{newUserModel>/PHONE_DIGITS/0}" type="Number" />
     <Input id="phoneDigit1" width="2em" maxLength="1" liveChange="onPhoneDigitChange" value="{newUserModel>/PHONE_DIGITS/1}" type="Number" />
     <Input id="phoneDigit2" width="2em" maxLength="1" liveChange="onPhoneDigitChange" value="{newUserModel>/PHONE_DIGITS/2}" type="Number" />
