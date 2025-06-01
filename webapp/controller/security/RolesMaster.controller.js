@@ -356,7 +356,7 @@ onActivateRole: function () {
 },
 
 //quitar los privilegios en lo de editar un rol
-    onRemovePrivilege: function (oEvent) {
+  onRemovePrivilege: function (oEvent) {
   // Detectar el modo de la UI
   const oUiState = this.getView().getModel("uiState");
   const bIsEditMode = oUiState?.getProperty("/dialogMode") === "edit";
